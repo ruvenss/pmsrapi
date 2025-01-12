@@ -20,5 +20,9 @@
     },
     "ms_logserver_token":"sample_token",
     "ms_logserver_url":"http://localhost:8081",
-    "env": "dev"
+    "env": "dev",
+    "local_log": {
+        "path": "/var/log/pmsrapi.log",
+        "level": "info"
+    }
 }
