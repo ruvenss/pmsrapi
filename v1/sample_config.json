@@ -17,6 +17,8 @@
         "POST":[ "function3", "function4" ],
         "GET":[ "function5", "function6" ],
         "DELETE":[ "function7", "function8" ]   
-    }
-    
+    },
+    "ms_logserver_token":"sample_token",
+    "ms_logserver_url":"http://localhost:8081",
+    "env": "dev"
 }
