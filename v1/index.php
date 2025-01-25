@@ -1,12 +1,12 @@
 <?php
-include_once 'config.php';
+include_once getcwd() . '/config.php';
 if (file_exists(config_path)) {
     define("ms_secrets", json_decode(file_get_contents(config_path), true));
-    define("ms_logserver_token", ms_secrets['logserver_token']);
+    define("ms_logserver_token", ms_secrets['ms_logserver_token']);
     define("ms_environment", ms_secrets['env']);
 } else {
     define("ms_secrets", []);
-    http_response(500, ["error" => "Configuration file not found"]);
+    http_response(500, ["error" => "Configuration file not found at " . config_path]);
 }
 if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
     $authorization = $_SERVER['HTTP_AUTHORIZATION'];
