@@ -6,6 +6,10 @@
         "username": "sample_user",
         "password": "sample_password"
     },
+    "http": {
+        "port": 8080,
+        "host": "0.0.0.0"
+    },
     "allowed_actions": [
         "read",
         "update",

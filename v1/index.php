@@ -21,11 +21,22 @@ if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
                 if (isset(ms_secrets['allowed_functions'][request_method]) && ms_secrets['allowed_functions'][request_method] != null) {
                     if (json_validate(request_body)) {
                         define("request_data", json_decode(request_body, true));
-                        //if ($_SERVER['REQUEST_METHOD'] == "GET") {
-                        http_response(200, ["message" => "Welcome to " . ms_name . " API", "version" => ms_version]);
-                        //} else {
-                        //    http_response(405, ["error" => "Method Not Allowed"]);
-                        //}
+                        if (isset(request_data['function'])) {
+                            if (in_array(request_data['function'], ms_secrets['allowed_functions'][request_method])) {
+                                if (file_exists(getcwd() . '/vendor/autoload.php')) {
+                                    include_once getcwd() . '/vendor/autoload.php';
+                                }
+                                if (file_exists(getcwd() . '/general/db.php')) {
+                                    include_once getcwd() . '/general/db.php';
+                                }
+                                if (file_exists(getcwd() . '/general/custom_functions.php')) {
+                                    include_once getcwd() . '/general/custom_functions.php';
+                                }
+                                include_once getcwd() . '/' . request_method . '/' . request_data['function'] . '.php';
+                            } else {
+                                http_response(405, ["error" => "Function not declared"]);
+                            }
+                        }
                     } else {
                         http_response(400, ["error" => "Bad Request invalid JSON"]);
                     }
