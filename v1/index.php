@@ -8,6 +8,7 @@ if (file_exists(config_path)) {
     define("ms_secrets", []);
     http_response(500, ["error" => "Configuration file not found at " . config_path]);
 }
+define("request_method", $_SERVER['REQUEST_METHOD']);
 if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
     if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
         $authorization = $_SERVER['HTTP_AUTHORIZATION'];
@@ -16,17 +17,20 @@ if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
             $token = $token[1];
             if (in_array($token, ms_secrets)) {
                 // Authorized
-                define("request_method", $_SERVER['REQUEST_METHOD']);
                 define("request_body", file_get_contents('php://input'));
-                if (json_validate(request_body)) {
-                    define("request_data", json_decode(request_body, true));
-                    if ($_SERVER['REQUEST_METHOD'] == "GET") {
+                if (isset(ms_secrets['allowed_functions'][request_method]) && ms_secrets['allowed_functions'][request_method] != null) {
+                    if (json_validate(request_body)) {
+                        define("request_data", json_decode(request_body, true));
+                        //if ($_SERVER['REQUEST_METHOD'] == "GET") {
                         http_response(200, ["message" => "Welcome to " . ms_name . " API", "version" => ms_version]);
+                        //} else {
+                        //    http_response(405, ["error" => "Method Not Allowed"]);
+                        //}
                     } else {
-                        http_response(405, ["error" => "Method Not Allowed"]);
+                        http_response(400, ["error" => "Bad Request invalid JSON"]);
                     }
                 } else {
-                    http_response(400, ["error" => "Bad Request invalid JSON"]);
+                    http_response(405, ["error" => "Method " . request_method . " Not Allowed"]);
                 }
             } else {
                 http_response(401, ["error" => "Unauthorized"]);
