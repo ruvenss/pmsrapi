@@ -16,3 +16,6 @@ define("ms_github_repo", "https://github.com/ruvenss/pmsrapi/");
 define("ms_restful_responses", ["200" => "OK", "201" => "Created", "204" => "No Content", "400" => "Bad Request", "401" => "Unauthorized", "403" => "Forbidden", "404" => "Not Found", "405" => "Method Not Allowed", "409" => "Conflict", "410" => "Gone", "500" => "Internal Server Error"]);
 define("ms_http_headers", ["Content-Type" => "application/json", "Access-Control-Allow-Origin" => "*", "Access-Control-Allow-Methods" => "GET, POST, PUT, DELETE, OPTIONS", "Access-Control-Allow-Headers" => "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With"]);
 define("ms_logserver", "http://localhost:8081/");
+/**
+ * Ignore file 
+ */
