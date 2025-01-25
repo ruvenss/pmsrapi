@@ -1,0 +1,32 @@
+{
+    "db": {
+        "host": "localhost",
+        "port": 3306,
+        "name": "sample_db",
+        "username": "sample_user",
+        "password": "sample_password"
+    },
+    "http": {
+        "port": 8080,
+        "host": "0.0.0.0"
+    },
+    "allowed_actions": [
+        "read",
+        "update",
+        "create",
+        "delete"
+    ],
+    "allowed_functions":{
+        "PUT":[ "function1", "function2" ],
+        "POST":[ "function3", "function4" ],
+        "GET":[ "function5", "function6" ],
+        "DELETE":[ "function7", "function8" ]   
+    },
+    "ms_logserver_token":"sample_token",
+    "ms_logserver_url":"http://localhost:8081",
+    "env": "dev",
+    "local_log": {
+        "path": "/var/log/pmsrapi.log",
+        "level": "info"
+    }
+}
