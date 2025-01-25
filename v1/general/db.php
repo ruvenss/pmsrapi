@@ -13,9 +13,11 @@ if (!defined("ms_secrets")) {
 }
 if (!defined("dbconn")) {
     if (isset(ms_secrets['db']) && isset(ms_secrets['db']['host'])) {
-
         $mysqli = new mysqli(ms_secrets['db']['host'], ms_secrets['db']['username'], ms_secrets['db']['password'], ms_secrets['db']['name']);
         if (!$mysqli) {
+            if (ms_secrets['local_log']['level'] == 'errors') {
+                sqlLog('dbconn', print_r(ms_secrets['db'], true), 'Error');
+            }
             http_response(500, ["error" => "Internal Server Error"]);
         }
         define("dbconn", $mysqli);
@@ -45,11 +47,11 @@ function sqlInsert($table, $fields = array(), $values = array(), $onduplicate = 
                 mysqli_query(dbconn, $sqlquery);
                 if (mysqli_insert_id(dbconn)) {
                     // Log the event
-                    if (ms_secrets['local_log']['level'] == 'info')
+                    if (ms_secrets['local_log']['level'] == 'info' || ms_secrets['local_log']['level'] == 'errors')
                         sqlLog('sqlInsert', $sqlquery, mysqli_insert_id(dbconn));
                     return (mysqli_insert_id(dbconn));
                 } else {
-                    if (ms_secrets['local_log']['level'] == 'info')
+                    if (ms_secrets['local_log']['level'] == 'info' || ms_secrets['local_log']['level'] == 'errors')
                         sqlLog('sqlInsert', $sqlquery, 'null');
                     return (null);
                 }
@@ -90,24 +92,24 @@ function sqlUpdate($table, $fields = [], $values = [], $where = null)
             if (dbconn->query($sqlquery) === TRUE) {
                 // Check if rows were actually updated
                 if (dbconn->affected_rows > 0) {
-                    if (ms_secrets['local_log']['level'] == 'info') {
+                    if (ms_secrets['local_log']['level'] == 'info' || ms_secrets['local_log']['level'] == 'errors') {
                         sqlLog('sqlUpdate', $sqlquery, dbconn->affected_rows . " rows updated");
                     }
                     return true;
                 } else {
-                    if (ms_secrets['local_log']['level'] == 'info') {
+                    if (ms_secrets['local_log']['level'] == 'info' || ms_secrets['local_log']['level'] == 'errors') {
                         sqlLog('sqlUpdate', $sqlquery, "0 rows updated");
                     }
                     return false;
                 }
             } else {
-                if (ms_secrets['local_log']['level'] == 'errors') {
+                if (ms_secrets['local_log']['level'] == 'errors' || ms_secrets['local_log']['level'] == 'errors') {
                     sqlLog('sqlUpdate', $sqlquery, "Error");
                 }
                 return false;
             }
         } else {
-            if (ms_secrets['local_log']['level'] == 'errors') {
+            if (ms_secrets['local_log']['level'] == 'errors' || ms_secrets['local_log']['level'] == 'errors') {
                 sqlLog('sqlUpdate', $table . " fields=" . sizeof($fields) . " values=" . sizeof($values) . " where=$where ", 'Error');
             }
         }
