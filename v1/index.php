@@ -8,17 +8,28 @@ if (file_exists(config_path)) {
     define("ms_secrets", []);
     http_response(500, ["error" => "Configuration file not found at " . config_path]);
 }
-if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-    $authorization = $_SERVER['HTTP_AUTHORIZATION'];
-    $token = explode(" ", $authorization);
-    if (count($token) == 2) {
-        $token = $token[1];
-        if (in_array($token, ms_secrets)) {
-            // Authorized
-            if ($_SERVER['REQUEST_METHOD'] == "GET") {
-                http_response(200, ["message" => "Welcome to " . ms_name . " API", "version" => ms_version]);
+if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $authorization = $_SERVER['HTTP_AUTHORIZATION'];
+        $token = explode(" ", $authorization);
+        if (count($token) == 2) {
+            $token = $token[1];
+            if (in_array($token, ms_secrets)) {
+                // Authorized
+                define("request_method", $_SERVER['REQUEST_METHOD']);
+                define("request_body", file_get_contents('php://input'));
+                if (json_validate(request_body)) {
+                    define("request_data", json_decode(request_body, true));
+                    if ($_SERVER['REQUEST_METHOD'] == "GET") {
+                        http_response(200, ["message" => "Welcome to " . ms_name . " API", "version" => ms_version]);
+                    } else {
+                        http_response(405, ["error" => "Method Not Allowed"]);
+                    }
+                } else {
+                    http_response(400, ["error" => "Bad Request invalid JSON"]);
+                }
             } else {
-                http_response(405, ["error" => "Method Not Allowed"]);
+                http_response(401, ["error" => "Unauthorized"]);
             }
         } else {
             http_response(401, ["error" => "Unauthorized"]);
@@ -27,13 +38,14 @@ if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
         http_response(401, ["error" => "Unauthorized"]);
     }
 } else {
-    http_response(401, ["error" => "Unauthorized"]);
+    http_response(400, ["error" => "Bad Request only application/json is allowed"]);
 }
 function http_response($http_code = 200, $data = null)
 {
     $response = ms_restful_responses;
     $http_headers = ms_http_headers;
     header("HTTP/1.1 $http_code $response[$http_code]");
+    header("X-Powered-By: PMSRAPI");
     foreach ($http_headers as $key => $value) {
         header("$key: $value");
     }
