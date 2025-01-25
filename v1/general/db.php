@@ -12,7 +12,11 @@ if (!defined("ms_secrets")) {
     http_response(500, ["error" => "Internal Server Error"]);
 }
 if (!defined("dbconn")) {
-    define("dbconn", new mysqli(ms_secrets['db']['host'], ms_secrets['db']['username'], ms_secrets['db']['password'], ms_secrets['db']['name']));
+    $mysqli = new mysqli(ms_secrets['db']['host'], ms_secrets['db']['username'], ms_secrets['db']['password'], ms_secrets['db']['name']);
+    if (!$mysqli) {
+        http_response(500, ["error" => "Internal Server Error"]);
+    }
+    define("dbconn", $mysqli);
 }
 if (dbconn->connect_errno) {
     http_response(500, ["error" => "Internal Server Error"]);

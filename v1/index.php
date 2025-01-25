@@ -69,6 +69,9 @@ function http_response($http_code = 200, $data = null)
     if ($data) {
         echo json_encode($data);
     }
+    if (defined("dbconn")) {
+        dbconn->close();
+    }
     die();
 }
 /**
