@@ -1,4 +1,14 @@
 <?php
+/**
+ * Deploy the Microservice to the server
+ * This script will create a systemd service for the Microservice
+ * @category MicroService
+ * @package  MicroService_Restful_API
+ * @version  1.0.0
+ * @since    1.0.0
+ * @link   https://github.com/ruvenss/pmsrapi
+ * IF YOU ADD YOUR CODE HERE IT WILL BE OVERWRITTEN ON THE NEXT UPDATE
+ */
 if (PHP_OS_FAMILY !== 'Linux') {
     echo "🔴 This script only works on Ubuntu 22, and >24\n";
     die();

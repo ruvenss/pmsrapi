@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of the Micro Service REST API
- * 
+ * DO NOT ADD YOUR CODE HERE, THIS FILE WILL BE AUTOMATICALLY UPDATED AND YOUR CODE WILL BE REMOVED
  * @author Ruvenss G. Wilches
  * @version 1.0.0
  * @license MIT
