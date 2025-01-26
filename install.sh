@@ -13,7 +13,7 @@ CURRENT_DIR=$(pwd)
 PARENT_DIR=$(dirname "$CURRENT_DIR")
 SAMPLE_CONFIG="${CURRENT_DIR}/v1/sample_config.json"
 # Define the cron job command
-CRON_JOB="0 * * * * cd $CURRENT_DIR;php autoupdate.php"
+CRON_JOB="0 * * * * cd $CURRENT_DIR;php update.php"
 # Check if the cron job already exists
 CRON_EXISTS=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB")
 platform='unknown'
