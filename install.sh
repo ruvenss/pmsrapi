@@ -5,7 +5,7 @@
 CURRENT_DIR=$(pwd)
 PARENT_DIR=$(dirname "$CURRENT_DIR")
 # Define the cron job command
-CRON_JOB="0 * * * * php $CURRENT_DIR/autoupdate.php"
+CRON_JOB="0 * * * * cd $CURRENT_DIR;php autoupdate.php"
 # Check if the cron job already exists
 CRON_EXISTS=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB")
 platform='unknown'
@@ -57,6 +57,9 @@ if [[ "$unamestr" == 'Linux' ]]; then
             dialog --title 'CRONJOB' --infobox 'It seems you already installed before, and the autoupdate was already activated' 7 60
             sleep 3
         fi
+        clear
+        echo "✅ Installation Completed, please remove the install.sh file, type:\n#~ rm install.sh\n\n"
+        echo "🚀 To start the service: type cd v1;php deploy.php"
     else
         clear
         echo "❌ Installation Cancelled $dialo_status"
