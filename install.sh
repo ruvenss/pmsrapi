@@ -42,10 +42,10 @@ if [[ "$unamestr" == 'Linux' ]]; then
         mms_logserver=$(dialog --title 'PMSRAPI' --inputbox 'Logness Server URL' 7 60  --output-fd 1)
         mms_logservertoken=$(dialog --title 'PMSRAPI' --inputbox 'Logness Token' 7 60  --output-fd 1)
         mms_config_path="${PARENT_DIR}/${mms_name}.json"
-        CONFIG_DATA="<?php\n
-// Define the database connection and private tokens out of your source code\n
-define(\"config_path\", \"${mms_config_path}\");\n
-// Define your Microservice details\n
+        CONFIG_DATA="<?php
+// Define the database connection and private tokens out of your source code
+define(\"config_path\", \"${mms_config_path}\");
+// Define your Microservice details
 define(\"ms_name\", \"${mms_name}\");
 define(\"ms_version\", \"${mms_version}\");
 define(\"ms_description\", \"${mms_description}\");
