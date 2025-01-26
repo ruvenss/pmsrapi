@@ -149,9 +149,10 @@ define(\"ms_logserver\", \"${mms_logserver}\");
             sleep 3
         fi
         clear
-        echo "✅ Configuration Completed\n\n"
+        echo "✅ Configuration Completed"
+        echo "__________________________"
         echo "🚀 Deploying service type cd v1;php deploy.php"
-        cd v1;php deploy.php
+        cd v1; php deploy.php
         echo "🚀 Service Deployed"
         echo "if you wish to expose this service to the internet, you can use Apache, NGINX reverse proxy or a service like ngrok"
         echo "Your service is running at http://${httphost}:${httpport} try it now"
