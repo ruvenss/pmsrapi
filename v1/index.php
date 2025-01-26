@@ -1,4 +1,16 @@
 <?php
+/**
+ * MicroService Restful API
+ * 
+ * This is the main entry point for the MicroService Restful API
+ * Do not add your code here, create your code and files in the GET, POST, PUT, DELETE folder
+ * IF YOU ADD YOUR CODE HERE IT WILL BE OVERWRITTEN ON THE NEXT UPDATE
+ * @category MicroService
+ * @package  MicroService_Restful_API
+ * @version  1.0.0
+ * @since    1.0.0
+ * @link    https://github.com/ruvenss/pmsrapi
+ * */
 include_once getcwd() . '/config.php';
 if (file_exists(config_path)) {
     define("ms_secrets", json_decode(file_get_contents(config_path), true));
