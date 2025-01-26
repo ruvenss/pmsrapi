@@ -117,6 +117,35 @@ function sqlUpdate($table, $fields = [], $values = [], $where = null)
         http_response(500, ["error" => "Internal Server Error"]);
     }
 }
+function sqlSelect($table, $field, $where, $orderby = "", $limit = "")
+{
+    if (defined("dbconn")) {
+        if (strlen($table) > 0 && strlen($field) > 0) {
+            $sqlquery = "SELECT `$field` FROM `$table`";
+            if (strlen($where) > 0) {
+                $sqlquery .= " WHERE ($where)";
+            }
+            if (strlen($orderby) > 0) {
+                $sqlquery .= " ORDER BY `$orderby`";
+            }
+            if (strlen($limit) > 0) {
+                $sqlquery .= " LIMIT $limit";
+            }
+            //error_log("sqlSelect empty result : $sqlquery",0);
+            $result = dbconn->query($sqlquery);
+            if (!$result) {
+                echo $sqlquery;
+                error_log("sqlSelect empty result : $sqlquery", 0);
+            } else {
+                while ($row = $result->fetch_assoc()) {
+                    return mb_convert_encoding($row[$field], 'UTF-8', mb_detect_encoding($row[$field]));
+                }
+            }
+        }
+    } else {
+        http_response(500, ["error" => "Internal Server Error"]);
+    }
+}
 function sqlSelectRow($table, $fields, $where, $orderby = "")
 {
     if (defined("dbconn")) {

@@ -12,6 +12,7 @@ fi
 CURRENT_DIR=$(pwd)
 PARENT_DIR=$(dirname "$CURRENT_DIR")
 SAMPLE_CONFIG="${CURRENT_DIR}/v1/sample_config.json"
+TOKEN=$(openssl rand -base64 24 | tr -d '=+/')
 # Define the cron job command
 CRON_JOB="0 * * * * cd $CURRENT_DIR;php autoupdate.php"
 # Check if the cron job already exists
@@ -101,7 +102,7 @@ define(\"ms_logserver\", \"${mms_logserver}\");
         \"GET\":[],
         \"DELETE\":[]  
     },
-    \"ms_logserver_token\":\"${mms_logservertoken}\",
+    \"ms_logserver_token\":\"${TOKEN}\",
     \"ms_logserver_url\":\"${mms_logserver}\",
     \"env\": \"${environtment}\",
     \"local_log\": {
@@ -127,6 +128,7 @@ define(\"ms_logserver\", \"${mms_logserver}\");
         \"GET\":[],
         \"DELETE\":[]  
     },
+    \"ms_server_token\":\"${mms_server_token}\",
     \"ms_logserver_token\":\"${mms_logservertoken}\",
     \"ms_logserver_url\":\"${mms_logserver}\",
     \"env\": \"${environtment}\",
@@ -158,6 +160,7 @@ define(\"ms_logserver\", \"${mms_logserver}\");
         echo "Your service is running at http://${httphost}:${httpport} try it now"
         echo "by using curl http://${httphost}:${httpport}"
         echo ""
+        echo "In all your REST API transactions, you must include the header --header 'Authorization: Bearer ${TOKEN}' with the value"
         chown -R www-data:www-data $CURRENT_DIR
     else
         clear
