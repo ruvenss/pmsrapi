@@ -1,25 +1,25 @@
 {
-    "product":"PMSRAPI Process Micro Service REST API",
-    "version":"0.0.2",
-    "release":"https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.1.zip",
-    "author":"Ruvenss G. Wilches",
-    "description":"This is a REST API for the PMSRAPI Process Micro Service",
-    "license":"MIT",
-    "author-url":"https://ruvenss.com/en/",
-    "source-code":[
+    "product": "PMSRAPI Process Micro Service REST API",
+    "version": "0.0.2",
+    "release": "https:\/\/github.com\/ruvenss\/pmsrapi\/archive\/refs\/tags\/0.0.1.zip",
+    "author": "Ruvenss G. Wilches",
+    "description": "This is a REST API for the PMSRAPI Process Micro Service",
+    "license": "MIT",
+    "author-url": "https:\/\/ruvenss.com\/en\/",
+    "source-code": [
         "update.php",
         "install.sh",
         "LICENSE",
         "README.md",
         "index.html",
-        "v1/deploy.php",
-        "v1/index.php",
-        "v1/cron/index.html",
-        "v1/DEL/index.html",
-        "v1/GET/index.html",
-        "v1/POST/index.html",
-        "v1/PUT/index.html",
-        "v1/general/index.html",
-        "v1/general/db.php"
+        "v1\/deploy.php",
+        "v1\/index.php",
+        "v1\/cron\/index.html",
+        "v1\/DEL\/index.html",
+        "v1\/GET\/index.html",
+        "v1\/POST\/index.html",
+        "v1\/PUT\/index.html",
+        "v1\/general\/index.html",
+        "v1\/general\/db.php"
     ]
 }
