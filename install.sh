@@ -27,6 +27,11 @@ if [[ "$unamestr" == 'Linux' ]]; then
     sudo apt install -qq -y unzip > /dev/null 2>&1
     sudo apt install -qq -y zip > /dev/null 2>&1
     sudo apt install -qq -y dialog > /dev/null 2>&1
+    sudo rm -f .vscode
+    sudo rm -f .git
+    sudo rm -f .gitignore
+    sudo rm -f README.md
+    sudo rm -f LICENSE
     if dialog --title 'Deployment directory' --backtitle "PMSRAPI" --yesno "Confirm deployment directory:\n$CURRENT_DIR\n\nConfirm parent directory:\n$PARENT_DIR" 17 60; then
         dialog --title 'Config' --infobox '✅ Let us start by setting the basic config file' 7 60
         sleep 3
@@ -42,10 +47,10 @@ if [[ "$unamestr" == 'Linux' ]]; then
         mms_logserver=$(dialog --title 'PMSRAPI' --inputbox 'Logness Server URL' 7 60  --output-fd 1)
         mms_logservertoken=$(dialog --title 'PMSRAPI' --inputbox 'Logness Token' 7 60  --output-fd 1)
         mms_config_path="${PARENT_DIR}/${mms_name}.json"
-        CONFIG_DATA="<?php\n
-// Define the database connection and private tokens out of your source code\n
-define(\"config_path\", \"${mms_config_path}\");\n
-// Define your Microservice details\n
+        CONFIG_DATA="<?php
+// Define the database connection and private tokens out of your source code
+define(\"config_path\", \"${mms_config_path}\");
+// Define your Microservice details
 define(\"ms_name\", \"${mms_name}\");
 define(\"ms_version\", \"${mms_version}\");
 define(\"ms_description\", \"${mms_description}\");
@@ -62,7 +67,6 @@ define(\"ms_http_headers\", [\"Content-Type\" => \"application/json\", \"Access-
 define(\"ms_logserver\", \"${mms_logserver}\");
 "
         echo "$CONFIG_DATA" > $CURRENT_DIR/v1/config.php
-        chown -R www-data:www-data $CURRENT_DIR
         httpport=$(dialog --backtitle "PMSRAPI" --title 'MicroService HTTP' --inputbox 'Enter the port where this service will live' 7 60 "8001"  --output-fd 1)
         httphost=$(dialog --backtitle "PMSRAPI" --title 'MicroService HTTP' --inputbox 'Enter the IP where this service will live' 7 60 "0.0.0.0"  --output-fd 1)
         environtment=$(dialog --menu "PMSRAPI Environment" 20 45 35 dev "Development" test "Test" stage "Staging" prod "Production" --output-fd 1)
@@ -153,6 +157,7 @@ define(\"ms_logserver\", \"${mms_logserver}\");
         echo "Your service is running at http://${httphost}:${httpport} try it now"
         echo "by using curl http://${httphost}:${httpport}"
         echo ""
+        chown -R www-data:www-data $CURRENT_DIR
     else
         clear
         echo "❌ Installation Cancelled $dialo_status"
