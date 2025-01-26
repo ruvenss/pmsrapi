@@ -1,6 +1,6 @@
 <?php
 // Define the database connection and private tokens out of your source code
-define("config_path", "../../pmsrapi.json");
+define("config_path", "mms_config_path");
 // Define your Microservice details
 define("ms_name", "mms_name");
 define("ms_version", "mms_version");
