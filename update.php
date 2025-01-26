@@ -2,13 +2,14 @@
 if (file_exists(getcwd() . '/manifest.json')) {
     define("current_manifest", json_decode(file_get_contents(getcwd() . '/manifest.json'), true));
     define("current_version", current_manifest['version']);
-    define("GITURL", "https://raw.githubusercontent.com/ruvenss/pmsrapi/");
+    define("GITURL", "https://raw.githubusercontent.com/ruvenss/pmsrapi/master/");
     echo "🚦 Checking for updates above version " . current_version . "... \n";
-    define("remote_manifest", json_decode(file_get_contents(GITURL . 'refs/heads/main/manifest.json'), true));
+    define("remote_manifest", json_decode(file_get_contents(GITURL . 'manifest.json'), true));
     define("remote_version", remote_manifest['version']);
     if (remote_version != current_version) {
         echo "🟢 New version " . remote_version . " found\n";
         echo "🚦 Updating the Microservice ...\n";
+        //die();
         file_put_contents(getcwd() . '/manifest.json', json_encode(remote_manifest, JSON_PRETTY_PRINT));
         define("UPDATABLE_FILES", remote_manifest['source-code']);
         for ($i = 0; $i < sizeof(UPDATABLE_FILES); $i++) {
