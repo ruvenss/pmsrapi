@@ -9,17 +9,21 @@ if (file_exists(getcwd() . '/manifest.json')) {
     if (remote_version != current_version) {
         echo "🟢 New version " . remote_version . " found\n";
         echo "🚦 Updating the Microservice ...\n";
-        //die();
         file_put_contents(getcwd() . '/manifest.json', json_encode(remote_manifest, JSON_PRETTY_PRINT));
         define("UPDATABLE_FILES", remote_manifest['source-code']);
         for ($i = 0; $i < sizeof(UPDATABLE_FILES); $i++) {
             $file2update = UPDATABLE_FILES[$i];
             $local_dest = getcwd() . $file2update;
-            $remote_source = GITURL . 'refs/heads/main/' . $file2update;
+            $remote_source = GITURL . $file2update;
+            $remote_content = file_get_contents($remote_source);
             verify_path($file2update);
+            file_put_contents($local_dest, $remote_content);
+            if (file_exists($local_dest)) {
+                echo "🟢 " . $file2update . " updated\n";
+            } else {
+                echo "🔴 " . $file2update . " not updated\n";
+            }
         }
-        echo "🚦 Restarting the Microservice\n";
-        exec("systemctl restart " . ms_name . ".service");
         echo "🟢 Microservice updated to version " . remote_version . "\n";
     } else {
         echo "🟢 The Microservice is up to date\n";
