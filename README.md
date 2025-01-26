@@ -22,7 +22,7 @@ apt install unzip
 mkdir my_microservice
 cd my_microservice
 wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.3.zip -O "pmsrapi.zip"
-unzip -l -qq ./"pmsrapi.zip" && rm ./"pmsrapi.zip"
+unzip -o -qq -j pmsrapi.zip && rm pmsrapi.zip
 ./install.sh
 ```
 
