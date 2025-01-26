@@ -19,10 +19,11 @@ Yes! Yet another REST API built in PHP.
 apt update
 apt upgrade -y
 apt install unzip
-mkdir my_microservice
-cd my_microservice
+mkdir /home/my_microservice
+cd /home/my_microservice
 wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.3.zip -O "pmsrapi.zip"
-unzip -l -qq ./"pmsrapi.zip" && rm ./"pmsrapi.zip"
+unzip -qq pmsrapi.zip && rm pmsrapi.zip
+mv pmsrapi-0.0.3/* /home/my_microservice
 ./install.sh
 ```
 
