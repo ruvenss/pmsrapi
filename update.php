@@ -13,7 +13,7 @@ if (file_exists(getcwd() . '/manifest.json')) {
         define("UPDATABLE_FILES", remote_manifest['source-code']);
         for ($i = 0; $i < sizeof(UPDATABLE_FILES); $i++) {
             $file2update = UPDATABLE_FILES[$i];
-            $local_dest = getcwd() . $file2update;
+            $local_dest = getcwd() . "/" . $file2update;
             $remote_source = GITURL . $file2update;
             $remote_content = file_get_contents($remote_source);
             verify_path($file2update);
