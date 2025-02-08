@@ -1,8 +1,8 @@
-            - name: Psalm – Security Scanner for PHP
+  - name: Psalm – Security Scanner for PHP
   # You may pin to the exact commit or the version.
   # uses: psalm/psalm-github-security-scan@9ec1b5e2b854b3f048fa32e8c4aaa9ae05d77345
-  uses: psalm/psalm-github-security-scan@1.4.0
-  with:
-    # File for Psalm’s output
-    report_file: # optional, default is results.sarif
+    uses: psalm/psalm-github-security-scan@1.4.0
+      with:
+      # File for Psalm’s output
+      report_file: # optional, default is results.sarif
           
