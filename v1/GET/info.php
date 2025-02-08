@@ -1,4 +1,10 @@
 <?php
+/**
+ * info.php
+ * Endpoint to get information about the microservice
+ * DO NOT MODIFY THIS FILE.
+ * @author ruvenss <ruvenss@gmail.com>
+ */
 info();
 function info()
 {

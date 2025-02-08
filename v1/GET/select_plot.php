@@ -1,4 +1,10 @@
 <?php
+/**
+ * select_plot.php
+ * Endpoint to select a plot from a table
+ * DO NOT MODIFY THIS FILE.
+ * @author ruvenss <ruvenss@gmail.com>
+ */
 function select_plot()
 {
     $fields = explode(",", request_data['parameters']['fields']);
