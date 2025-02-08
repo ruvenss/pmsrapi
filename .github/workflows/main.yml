@@ -5,8 +5,5 @@ jobs:
   check-security-code:
     runs-on: ubuntu-latest
     steps:
-     - uses: php-actions/phpcs@v1
-       with:
-         # File for Psalm’s output
-         report_file: results.sarif
+     - uses: pipeline-components/php-codesniffer@v0.12.3
           
