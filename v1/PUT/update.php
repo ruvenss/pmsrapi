@@ -1,14 +1,17 @@
 <?php
 /**
- * insert.php
- * Endpoint to insert a new row into a table
+ * update.php
+ * Endpoint to update a record in a table
  * DO NOT MODIFY THIS FILE.
  * @author ruvenss <ruvenss@gmail.com>
  */
-function insert()
+function update()
 {
     if (!isset(request_data['parameters']['table']) || !isset(request_data['parameters']['values'])) {
-        http_response(400, ["error" => "Missing table name or values"]);
+        http_response(400, ["error" => "Missing table "]);
+    }
+    if (!isset(request_data['parameters']['where'])) {
+        http_response(400, ["error" => "Missing where "]);
     }
     if (!is_array(request_data['parameters']['values'])) {
         http_response(400, ["error" => "Values and Columns must be an array"]);
@@ -24,16 +27,13 @@ function insert()
         $keys[] = $key;
         $values[] = $value;
     }
-    $new_id = sqlInsert(request_data['parameters']['table'], $keys, $values);
-    define("new_id", $new_id);
-    if ($new_id > 0) {
-        $primary_key = getPrimaryKey(request_data['parameters']['table']);
-        $new_row = sqlSelectRow(request_data['parameters']['table'], "*", "`$primary_key` = $new_id");
+    if (sqlUpdate(request_data['parameters']['table'], $keys, $values, request_data['parameters']['where'])) {
+        $affectedRows = dbconn->affected_rows;
+        $last_update = getTableLastUpdateTime(request_data['parameters']['table']);
+        include_once getcwd() . '/' . request_method . '/events.php';
+        http_response(200, ["values" => [], "table_last_update" => $last_update, "affected_rows" => $affectedRows]);
     } else {
-        $new_row = null;
+        http_response(400, ["error" => "Update failed"]);
     }
-    $last_update = getTableLastUpdateTime(request_data['parameters']['table']);
-    include_once getcwd() . '/' . request_method . '/events.php';
-    http_response(200, ["values" => ["new_id" => new_id], "table_last_update" => $last_update, "new_row" => $new_row]);
 }
-insert();
+update();
