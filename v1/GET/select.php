@@ -7,6 +7,7 @@
  */
 function select()
 {
-    http_response(200, ["data" => [request_data['parameters']['field'] => sqlSelect(request_data['parameters']['table'], request_data['parameters']['field'], request_data['parameters']['where'])]]);
+    $last_update = getTableLastUpdateTime(request_data['parameters']['table']);
+    http_response(200, ["values" => [request_data['parameters']['field'] => sqlSelect(request_data['parameters']['table'], request_data['parameters']['field'], request_data['parameters']['where'])], "table_last_update" => $last_update]);
 }
 select();

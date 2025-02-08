@@ -68,7 +68,7 @@ function sqlInsert($table, $fields = array(), $values = array(), $onduplicate = 
             return (null);
         }
     } else {
-        http_response(500, ["error" => "Internal Server Error"]);
+        http_response(500, ["error" => "Internal DB Server Error"]);
     }
 }
 function sqlUpdate($table, $fields = [], $values = [], $where = null)
@@ -328,4 +328,56 @@ function sqlLog($action = 'sqlInsert', $query = null, $logresult = null)
         file_put_contents(ms_secrets['local_log']['path'], $logline, FILE_APPEND);
     }
     return (true);
+}
+function getPrimaryKey($tableName)
+{
+    if (defined("dbconn")) {
+        $sql = "SHOW KEYS FROM $tableName WHERE Key_name = 'PRIMARY'";
+        $result = dbconn->query($sql);
+        if ($result) {
+            $row = $result->fetch_assoc();
+            return $row['Column_name'];
+        }
+    }
+    return null;
+}
+/**
+ * Get the last update time of a table.
+ *
+ * @param mysqli $conn       The MySQLi connection object.
+ * @param string $dbName     The name of the database.
+ * @param string $tableName  The name of the table.
+ * @return string            The last update time or an error message.
+ */
+function getTableLastUpdateTime($tableName)
+{
+    // Query to fetch the last update time from information_schema.tables
+    $sql = "
+        SELECT UPDATE_TIME
+        FROM information_schema.tables
+        WHERE TABLE_SCHEMA = '" . ms_secrets['db']['name'] . "'
+        AND TABLE_NAME = '$tableName'
+    ";
+
+    // Prepare the SQL statement
+    if ($stmt = dbconn->prepare($sql)) {
+        // Bind parameters (database name and table name)
+        //$stmt->bind_param("ss", ms_secrets['db']['name'], $tableName);
+
+        // Execute the query
+        $stmt->execute();
+
+        // Get the result
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+
+        // Check if UPDATE_TIME is available
+        if ($row && $row['UPDATE_TIME']) {
+            return $row['UPDATE_TIME'];
+        } else {
+            return null;
+        }
+    } else {
+        return null;
+    }
 }
