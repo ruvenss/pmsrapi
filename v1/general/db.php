@@ -200,7 +200,7 @@ function sqlSelectRows($table, $fields, $where, $orderby = "", $limit = "")
     }
     return ($rows);
 }
-function sqlSelectPlot($table, $field_x, $field_y, $where, $orderby = "", $limit = "")
+function sqlSelectPlot($table, $field_x, $field_y, $where = "", $orderby = "", $limit = "", $groupby = "")
 {
     $rows = [];
     if (defined("dbconn")) {
@@ -208,6 +208,9 @@ function sqlSelectPlot($table, $field_x, $field_y, $where, $orderby = "", $limit
             $sqlquery = "SELECT `$field_x`,`$field_y` FROM `$table`";
             if (strlen($where) > 0) {
                 $sqlquery .= " WHERE ($where)";
+            }
+            if (strlen($groupby) > 0) {
+                $sqlquery .= " GROUP BY $groupby";
             }
             if (strlen($orderby) > 0) {
                 $sqlquery .= " ORDER BY $orderby";
