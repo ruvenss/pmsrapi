@@ -71,6 +71,10 @@ function http_response($http_code = 200, $data = null)
 {
     $response = ms_restful_responses;
     $http_headers = ms_http_headers;
+    $success = false;
+    if ($http_code == 200) {
+        $success = true;
+    }
     header("HTTP/1.1 $http_code $response[$http_code]");
     header("X-Powered-By: PMSRAPI");
     foreach ($http_headers as $key => $value) {
@@ -79,7 +83,8 @@ function http_response($http_code = 200, $data = null)
     header("MicroService: " . ms_name);
     header("MicroService-Version: " . ms_version);
     if ($data) {
-        echo json_encode($data);
+        $response = ["success" => $success, "data" => $data];
+        echo json_encode($response);
     }
     if (defined("dbconn")) {
         dbconn->close();

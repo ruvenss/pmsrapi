@@ -199,7 +199,33 @@ function sqlSelectRows($table, $fields, $where, $orderby = "", $limit = "")
         }
     }
     return ($rows);
-
+}
+function sqlSelectPlot($table, $field_x, $field_y, $where, $orderby = "", $limit = "")
+{
+    $rows = [];
+    if (defined("dbconn")) {
+        if (strlen($table) > 0 && strlen($field_x) > 0 && strlen($field_y) > 0) {
+            $sqlquery = "SELECT `$field_x`,`$field_y` FROM `$table`";
+            if (strlen($where) > 0) {
+                $sqlquery .= " WHERE ($where)";
+            }
+            if (strlen($orderby) > 0) {
+                $sqlquery .= " ORDER BY $orderby";
+            }
+            if (strlen($limit) > 0) {
+                $sqlquery .= " LIMIT $limit";
+            }
+            $result = dbconn->query($sqlquery);
+            if (!$result) {
+                return (null);
+            } else {
+                while ($row = $result->fetch_assoc()) {
+                    $rows[$row[$field_x]] = $row[$field_y];
+                }
+            }
+        }
+    }
+    return ($rows);
 }
 function sqlCount($table, $where)
 {
