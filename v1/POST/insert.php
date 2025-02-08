@@ -19,11 +19,15 @@ function insert()
         $values[] = $value;
     }
     $new_id = sqlInsert(request_data['parameters']['table'], $keys, $values);
-    if ($new_id == null) {
-        http_response(500, ["error" => "Error inserting data"]);
-    }
     define("new_id", $new_id);
+    if ($new_id > 0) {
+        $primary_key = getPrimaryKey(request_data['parameters']['table']);
+        $new_row = sqlSelectRow(request_data['parameters']['table'], "*", "`$primary_key` = $new_id");
+    } else {
+        $new_row = null;
+    }
+    $last_update = getTableLastUpdateTime(request_data['parameters']['table']);
     include_once getcwd() . '/' . request_method . '/events.php';
-    http_response(200, ["data" => ["new_id" => new_id]]);
+    http_response(200, ["values" => ["new_id" => new_id], "table_last_update" => $last_update, "new_row" => $new_row]);
 }
 insert();

@@ -9,6 +9,6 @@
 function sum_rows()
 {
     $sum = sqlSum(request_data['parameters']['table'], request_data['parameters']['field'], request_data['parameters']['where']);
-    http_response(200, ["data" => ["total" => $sum]]);
+    http_response(200, ["values" => ["total" => $sum], "table_last_update" => getTableLastUpdateTime(request_data['parameters']['table'])]);
 }
 sum_rows();

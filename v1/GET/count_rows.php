@@ -9,6 +9,6 @@
 function count_rows()
 {
     $count = sqlCount(request_data['parameters']['table'], request_data['parameters']['where']);
-    http_response(200, ["data" => ["total" => $count]]);
+    http_response(200, ["values" => ["total" => $count], "table_last_update" => getTableLastUpdateTime(request_data['parameters']['table'])]);
 }
 count_rows();
