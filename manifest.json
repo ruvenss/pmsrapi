@@ -1,7 +1,7 @@
 {
     "product": "PMSRAPI Process Micro Service REST API",
-    "version": "0.0.4",
-    "release": "https:\/\/github.com\/ruvenss\/pmsrapi\/archive\/refs\/tags\/0.0.4.zip",
+    "version": "0.0.5",
+    "release": "https:\/\/github.com\/ruvenss\/pmsrapi\/archive\/refs\/tags\/0.0.5.zip",
     "author": "Ruvenss G. Wilches",
     "description": "This is a REST API for the PMSRAPI Process Micro Service",
     "license": "MIT",
@@ -21,6 +21,7 @@
         "v1\/GET\/info.php",
         "v1\/GET\/select_row.php",
         "v1\/GET\/select_rows.php",
+        "v1\/GET\/select_plot.php",
         "v1\/GET\/select.php",
         "v1\/POST\/index.html",
         "v1\/PUT\/index.html",
