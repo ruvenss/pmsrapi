@@ -2,10 +2,10 @@ name: ruvenss-scanner
 run-name: ${{ github.actor }} is scanning
 on: [push]
 jobs:
-  check-bats-version:
+  check-security-code:
     runs-on: ubuntu-latest
     steps:
-     - uses: psalm/psalm-github-security-scan@1.4.0
+     - uses: php-actions/phpcs@v1
        with:
          # File for Psalm’s output
          report_file: results.sarif
