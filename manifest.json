@@ -24,6 +24,8 @@
         "v1\/GET\/select_plot.php",
         "v1\/GET\/select.php",
         "v1\/POST\/index.html",
+        "v1\/POST\/insert.php",
+        "v1\/POST\/events.php",
         "v1\/PUT\/index.html",
         "v1\/general\/index.html",
         "v1\/general\/db.php",
