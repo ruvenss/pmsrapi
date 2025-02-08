@@ -1,0 +1,2 @@
+- name: Check PHP syntax errors
+  uses: overtrue/phplint@9.5.6
