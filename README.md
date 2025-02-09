@@ -6,9 +6,9 @@ Yes! Yet another REST API built in PHP.
 
 ## Requierements
 
-- Ubuntu Linux 24.04 or greather
+- Ubuntu Linux 24.10 or greather
 - PHP 8.3 or greather
-- PHP Extensions: mysql, mbstring, intl, xml, zip
+- PHP Extensions: mysql, mbstring, intl, xml, zip, sqlite
 - Bash
 - unzip
 - root access
@@ -21,9 +21,9 @@ apt upgrade -y
 apt install unzip
 mkdir /home/my_microservice
 cd /home/my_microservice
-wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.9.zip -O "pmsrapi.zip"
+wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.10.zip -O "pmsrapi.zip"
 unzip -qq pmsrapi.zip && rm pmsrapi.zip
-mv pmsrapi-0.0.9/* /home/my_microservice
+mv pmsrapi-0.0.10/* /home/my_microservice
 ./install.sh
 ```
 
@@ -40,3 +40,28 @@ You can edit this file and add your own project data as well.
 The way to play along is simple. Do not modify the core files, they will be automatically updated on each release and you'll see the changes in your GIT.
 
 For any issues please contact me. Made with love in Belgium
+
+## Features
+
+- Basic CRUD
+- Upload Files
+- Download Files
+- WebHooks
+- Maps other microservices
+- One Microservice per DataBase
+- Extend your code in different files
+- Events
+- Customisable events
+- Customisable Functions
+- Works with NIZU Cloud
+- Works with LightWeeb
+- Works with OrderLemon
+- Works with WordPress
+- Available as Container (soon)
+- Simple code.
+- Compatible with nginx using proxy balancer and multiple instances
+- Compatible with Apache 2.4x using reverse proxy
+- PHP8.3 or greater
+- Compatible with MariaDB and MySQL
+- Compatible with MongoDB (soon)
+- Compatible SQLite (soon)
