@@ -22,4 +22,4 @@ function delete()
         http_response(400, ["error" => "Delete failed"]);
     }
 }
-update();
+delete();

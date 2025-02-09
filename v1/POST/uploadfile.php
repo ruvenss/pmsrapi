@@ -1,4 +1,10 @@
 <?php
+/**
+ * uploadfile.php
+ * Endpoint to upload file to a local path using base64 encoding
+ * DO NOT MODIFY THIS FILE.
+ * @author ruvenss <ruvenss@gmail.com>
+ */
 function uploadfile()
 {
     $file_name = request_data['parameters']['file_name'] ?? null;
@@ -20,3 +26,4 @@ function uploadfile()
         http_response(500, ["error" => "Error uploading file"]);
     }
 }
+uploadfile();
