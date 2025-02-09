@@ -71,6 +71,31 @@ function sqlInsert($table, $fields = array(), $values = array(), $onduplicate = 
         http_response(500, ["error" => "Internal DB Server Error"]);
     }
 }
+function sqlDelete($table, $where)
+{
+    if (defined("dbconn")) {
+        if (strlen($table) > 0 && strlen($where) > 0) {
+            $sqlquery = "DELETE FROM `$table` WHERE ($where)";
+            if (dbconn->query($sqlquery) === TRUE) {
+                if (ms_secrets['local_log']['level'] == 'info' || ms_secrets['local_log']['level'] == 'errors') {
+                    sqlLog('sqlDelete', $sqlquery, dbconn->affected_rows . " rows deleted");
+                }
+                return true;
+            } else {
+                if (ms_secrets['local_log']['level'] == 'errors' || ms_secrets['local_log']['level'] == 'errors') {
+                    sqlLog('sqlDelete', $sqlquery, "Error");
+                }
+                return false;
+            }
+        } else {
+            if (ms_secrets['local_log']['level'] == 'errors' || ms_secrets['local_log']['level'] == 'errors') {
+                sqlLog('sqlDelete', $table . " where=$where ", 'Error');
+            }
+        }
+    } else {
+        http_response(500, ["error" => "Internal Server Error"]);
+    }
+}
 function sqlUpdate($table, $fields = [], $values = [], $where = null)
 {
     if (defined("dbconn")) {
