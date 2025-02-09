@@ -27,10 +27,11 @@ function universe_insert_node()
     }
     $world = [
         'name' => request_data['parameters']['name'],
-        'type' => request_data['parameters']['type'],
+        'type' => request_data['parameters']['type'] ?? 'crud',
         'ip' => request_data['parameters']['ip'],
         'port' => request_data['parameters']['port'],
-        'token' => request_data['parameters']['token']
+        'token' => request_data['parameters']['token'],
+        'ssl' => request_data['parameters']['ssl'] ?? false
     ];
     $new_ms_secrets['universe'][] = $world;
     $new_json_ms_secrets = json_encode($new_ms_secrets, JSON_PRETTY_PRINT);
