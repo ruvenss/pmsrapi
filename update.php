@@ -9,7 +9,6 @@ if (file_exists(getcwd() . '/manifest.json')) {
     if (remote_version != current_version) {
         echo "🟢 New version " . remote_version . " found\n";
         echo "🚦 Updating the Microservice ...\n";
-        file_put_contents(getcwd() . '/manifest.json', json_encode(remote_manifest, JSON_PRETTY_PRINT));
         define("UPDATABLE_FILES", remote_manifest['source-code']);
         for ($i = 0; $i < sizeof(UPDATABLE_FILES); $i++) {
             $file2update = UPDATABLE_FILES[$i];
@@ -24,6 +23,7 @@ if (file_exists(getcwd() . '/manifest.json')) {
                 echo "🔴 " . $file2update . " not updated\n";
             }
         }
+        file_put_contents(getcwd() . '/manifest.json', json_encode(remote_manifest, JSON_PRETTY_PRINT));
         echo "🟢 Microservice updated to version " . remote_version . "\n";
     } else {
         echo "🟢 The Microservice is up to date\n";

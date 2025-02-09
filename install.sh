@@ -135,7 +135,16 @@ define(\"ms_logserver\", \"${mms_logserver}\");
     \"local_log\": {
         \"path\": \"/var/log/${mms_name}.log\",
         \"level\": \"${loglevel}\"
-    }
+    },
+    \"universe\": [
+        {
+            \"name\":\"\",
+            \"ip\": \"\",
+            \"port\": \"\",
+            \"token\": \"\",
+            \"type\": \"\"
+        }
+    ]
 }"
         fi
         echo "$JSON_DATA" > $mms_config_path

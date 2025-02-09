@@ -94,6 +94,57 @@ function http_response($http_code = 200, $data = null)
     }
     die();
 }
+function http_rest($node, $function, $payload, $parameters, $method = "GET")
+{
+    if (isset(ms_secrets['universe'])) {
+        $data_payload = [];
+        for ($i = 0; $i < count(ms_secrets['universe']); $i++) {
+            if (ms_secrets['universe'][$i]['name'] == $node) {
+                if (ms_secrets['universe'][$i]['ssl'] == true) {
+                    $url = "https://" . ms_secrets['universe'][$i]['ip'] . ":" . ms_secrets['universe'][$i]['port'] . "/api/v1/";
+                } else {
+                    $url = "http://" . ms_secrets['universe'][$i]['ip'] . ":" . ms_secrets['universe'][$i]['port'] . "/api/v1/";
+                }
+                $token = ms_secrets['universe'][$i]['token'];
+                break;
+            }
+        }
+        $data_payload['function'] = $function;
+        $data_payload['parameters'] = $parameters;
+        $data_payload['payload'] = $payload;
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_POSTFIELDS => json_encode($data_payload),
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $token
+            ),
+        ));
+        curl_exec($curl);
+        if (curl_errno($curl)) {
+            curl_close($curl);
+            return false;
+        } else {
+            $response = curl_exec($curl);
+            curl_close($curl);
+            if (json_validate($response)) {
+                return json_decode($response, true);
+            } else {
+                return $response;
+            }
+        }
+    } else {
+        return false;
+    }
+}
 /**
  * Log an event to the log server
  * @param string $changes = {"field":"value","field2":"value2"} or null
@@ -142,8 +193,9 @@ function log_event($changes, $env = "dev", $action = "updated", $log_type = "tas
             curl_close($curl);
             return false;
         } else {
+            $response = curl_exec($curl);
             curl_close($curl);
-            return true;
+            return $response;
         }
     } else {
         return false;

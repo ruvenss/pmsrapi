@@ -74,7 +74,9 @@ function sqlInsert($table, $fields = array(), $values = array(), $onduplicate = 
 function sqlUpdate($table, $fields = [], $values = [], $where = null)
 {
     if (defined("dbconn")) {
-        if (strlen($table) > 0 && sizeof($fields) > 0 && sizeof($values) == sizeof($fields) && sizeof($where) > 0) {
+
+        if (strlen($table) > 0 && sizeof($values) == sizeof($fields)) {
+
             $sqlquery = "UPDATE `$table` SET ";
             for ($i = 0; $i < sizeof($values); $i++) {
                 if (strtoupper($values[$i]) == "NOW()") {
@@ -86,10 +88,13 @@ function sqlUpdate($table, $fields = [], $values = [], $where = null)
                 }
                 $sqlquery .= "`" . $fields[$i] . "`=" . $values[$i] . ",";
             }
+            $sqlquery = rtrim($sqlquery, ",");
             if ($where != null) {
                 $sqlquery .= " WHERE (" . $where . ")";
             }
+
             if (dbconn->query($sqlquery) === TRUE) {
+
                 // Check if rows were actually updated
                 if (dbconn->affected_rows > 0) {
                     if (ms_secrets['local_log']['level'] == 'info' || ms_secrets['local_log']['level'] == 'errors') {
