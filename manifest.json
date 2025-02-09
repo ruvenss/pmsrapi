@@ -23,6 +23,7 @@
         "v1\/cron\/month.php",
         "v1\/cron\/year.php",
         "v1\/DEL\/index.html",
+        "v1\/DEL\/delete.php",
         "v1\/GET\/index.html",
         "v1\/GET\/count_rows.php",
         "v1\/GET\/info.php",
