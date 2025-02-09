@@ -39,8 +39,8 @@ After=network.target
 [Service]
 ExecStart=/usr/bin/php -S ' . ms_secrets['http']['host'] . ':' . ms_secrets['http']['port'] . ' -t ' . project_path . '
 Restart=always
-User=www-data
-Group=www-data
+User=root
+Group=root
 WorkingDirectory=' . project_path . '
 
 [Install]

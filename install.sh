@@ -15,8 +15,22 @@ SAMPLE_CONFIG="${CURRENT_DIR}/v1/sample_config.json"
 TOKEN=$(openssl rand -base64 24 | tr -d '=+/')
 # Define the cron job command
 CRON_JOB="0 * * * * cd $CURRENT_DIR;php update.php"
+CRON_JOB_SECOND="* * * * * cd $CURRENT_DIR/v1/cron/;php second.php"
+CRON_JOB_MINUTE="* * * * * cd $CURRENT_DIR/v1/cron/;php minute.php"
+CRON_JOB_HOUR="0 * * * * cd $CURRENT_DIR/v1/cron/;php hour.php"
+CRON_JOB_DAY="0 0 * * * cd $CURRENT_DIR/v1/cron/;php day.php"
+CRON_JOB_WEEK="0 0 * * 0 cd $CURRENT_DIR/v1/cron/;php week.php"
+CRON_JOB_MONTH="0 0 1 * * cd $CURRENT_DIR/v1/cron/;php month.php"
+CRON_JOB_YEAR="0 0 1 1 * cd $CURRENT_DIR/v1/cron/;php year.php"
 # Check if the cron job already exists
 CRON_EXISTS=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB")
+CRON_EXISTS_SECOND=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_SECOND")
+CRON_EXISTS_MINUTE=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_MINUTE")   
+CRON_EXISTS_HOUR=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_HOUR")   
+CRON_EXISTS_DAY=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_DAY") 
+CRON_EXISTS_WEEK=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_WEEK")   
+CRON_EXISTS_MONTH=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_MONTH") 
+CRON_EXISTS_YEAR=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_YEAR")
 platform='unknown'
 unamestr=$(uname)
 sudo clear
@@ -136,15 +150,7 @@ define(\"ms_logserver\", \"${mms_logserver}\");
         \"path\": \"/var/log/${mms_name}.log\",
         \"level\": \"${loglevel}\"
     },
-    \"universe\": [
-        {
-            \"name\":\"\",
-            \"ip\": \"\",
-            \"port\": \"\",
-            \"token\": \"\",
-            \"type\": \"\"
-        }
-    ]
+    \"universe\": []
 }"
         fi
         echo "$JSON_DATA" > $mms_config_path
@@ -157,6 +163,69 @@ define(\"ms_logserver\", \"${mms_logserver}\");
             sleep 3
         else
             dialog --title 'CRONJOB' --infobox 'It seems you already installed before, and the autoupdate was already activated' 7 60
+            sleep 3
+        fi
+        if [ -z "$CRON_EXISTS_SECOND" ]; then
+            # Add the cron job
+            (crontab -l 2>/dev/null; echo "$CRON_JOB_SECOND") | crontab -
+            dialog --title 'CRONJOB' --infobox 'Secondly CronJob has been added to your CRONJOBS' 7 60
+            sleep 3
+        else
+            dialog --title 'CRONJOB' --infobox 'It seems you already installed seconds execution cron job before, and the autoupdate was already activated' 7 60
+            sleep 3
+        fi
+        if [ -z "$CRON_EXISTS_MINUTE" ]; then
+            # Add the cron job
+            (crontab -l 2>/dev/null; echo "$CRON_JOB_MINUTE") | crontab -
+            dialog --title 'CRONJOB' --infobox 'Minute CronJob has been added to your CRONJOBS' 7 60
+            sleep 3
+        else
+            dialog --title 'CRONJOB' --infobox 'It seems you already installed minute execution cron job before, and the autoupdate was already activated' 7 60
+            sleep 3
+        fi
+        if [ -z "$CRON_EXISTS_HOUR" ]; then
+            # Add the cron job
+            (crontab -l 2>/dev/null; echo "$CRON_JOB_HOUR") | crontab -
+            dialog --title 'CRONJOB' --infobox 'Hourly CronJob has been added to your CRONJOBS' 7 60
+            sleep 3
+        else
+            dialog --title 'CRONJOB' --infobox 'It seems you already installed hourly execution cron job before, and the autoupdate was already activated' 7 60
+            sleep 3
+        fi
+        if [ -z "$CRON_EXISTS_DAY" ]; then
+            # Add the cron job
+            (crontab -l 2>/dev/null; echo "$CRON_JOB_DAY") | crontab -
+            dialog --title 'CRONJOB' --infobox 'Daily CronJob has been added to your CRONJOBS' 7 60
+            sleep 3
+        else
+            dialog --title 'CRONJOB' --infobox 'It seems you already installed daily execution cron job before, and the autoupdate was already activated' 7 60
+            sleep 3
+        fi
+        if [ -z "$CRON_EXISTS_WEEK" ]; then
+            # Add the cron job
+            (crontab -l 2>/dev/null; echo "$CRON_JOB_WEEK") | crontab -
+            dialog --title 'CRONJOB' --infobox 'Weekly CronJob has been added to your CRONJOBS' 7 60
+            sleep 3
+        else
+            dialog --title 'CRONJOB' --infobox 'It seems you already installed weekly execution cron job before, and the autoupdate was already activated' 7 60
+            sleep 3
+        fi
+        if [ -z "$CRON_EXISTS_MONTH" ]; then
+            # Add the cron job
+            (crontab -l 2>/dev/null; echo "$CRON_JOB_MONTH") | crontab -
+            dialog --title 'CRONJOB' --infobox 'Monthly CronJob has been added to your CRONJOBS' 7 60
+            sleep 3
+        else
+            dialog --title 'CRONJOB' --infobox 'It seems you already installed monthly execution cron job before, and the autoupdate was already activated' 7 60
+            sleep 3
+        fi
+        if [ -z "$CRON_EXISTS_YEAR" ]; then
+            # Add the cron job
+            (crontab -l 2>/dev/null; echo "$CRON_JOB_YEAR") | crontab -
+            dialog --title 'CRONJOB' --infobox 'Yearly CronJob has been added to your CRONJOBS' 7 60
+            sleep 3
+        else
+            dialog --title 'CRONJOB' --infobox 'It seems you already installed yearly execution cron job before, and the autoupdate was already activated' 7 60
             sleep 3
         fi
         clear
