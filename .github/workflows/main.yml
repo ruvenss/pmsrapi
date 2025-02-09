@@ -6,4 +6,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
      - uses: pipeline-components/php-codesniffer@v0.12.3
+     - uses: pplotka/local-php-security-checker-github-actions@1.1.2
           
