@@ -21,7 +21,7 @@ apt upgrade -y
 apt install unzip
 mkdir /home/my_microservice
 cd /home/my_microservice
-wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.3.zip -O "pmsrapi.zip"
+wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.9.zip -O "pmsrapi.zip"
 unzip -qq pmsrapi.zip && rm pmsrapi.zip
 mv pmsrapi-0.0.3/* /home/my_microservice
 ./install.sh
