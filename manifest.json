@@ -30,6 +30,7 @@
         "v1\/PUT\/index.html",
         "v1\/PUT\/update.php",
         "v1\/PUT\/events.php",
+        "v1\/webhooks\/index.html",
         "v1\/general\/index.html",
         "v1\/general\/db.php",
         "v1\/general\/manifest.php",

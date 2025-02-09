@@ -9,16 +9,19 @@ function universe_insert_node()
 {
     include_once getcwd() . '/general/manifest.php';
     $new_ms_secrets = ms_secrets;
+    if (!isset(request_data['parameters']['name']) || !isset(request_data['parameters']['type']) || !isset(request_data['parameters']['ip']) || !isset(request_data['parameters']['port']) || !isset(request_data['parameters']['token'])) {
+        http_response(400, ["error" => "Missing parameters"]);
+    }
     if (!isset(ms_secrets['universe'])) {
         $new_ms_secrets['universe'] = [];
     } else {
         // Check if node already exists
         foreach (ms_secrets['universe'] as $world) {
             if ($world['name'] == request_data['parameters']['name']) {
-                http_response(400, ["values" => ["message" => "Node already exists"]]);
+                http_response(400, ["error" => "Node already exists"]);
             }
             if ($world['ip'] == request_data['parameters']['ip'] && $world['port'] == request_data['parameters']['port']) {
-                http_response(400, ["values" => ["message" => "Another node is already using this IP and Port"]]);
+                http_response(400, ["error" => "Another node is already using this IP and Port"]);
             }
         }
     }
@@ -26,7 +29,8 @@ function universe_insert_node()
         'name' => request_data['parameters']['name'],
         'type' => request_data['parameters']['type'],
         'ip' => request_data['parameters']['ip'],
-        'port' => request_data['parameters']['port']
+        'port' => request_data['parameters']['port'],
+        'token' => request_data['parameters']['token']
     ];
     $new_ms_secrets['universe'][] = $world;
     $new_json_ms_secrets = json_encode($new_ms_secrets, JSON_PRETTY_PRINT);
