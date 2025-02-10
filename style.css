@@ -127,7 +127,19 @@ table {
     border-collapse: collapse;
     border-spacing: 0
 }
-
+body{
+    background-color: rgb(26, 26, 26);
+}
+.version{
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 160px;
+    height: 160px;
+    margin: 90px 0px 0px -30px;
+    color:white;
+    font-family: 'Courier New', Courier, monospace;
+}
 .loader {
     position: fixed;
     top: 50%;
@@ -137,7 +149,7 @@ table {
     margin: -80px 0px 0px -80px;
     background-color: transparent;
     border-radius: 50%;
-    border: 2px solid #E3E4DC;
+    border: 2px solid #00bfff;
 }
 
 .loader:before {
@@ -146,7 +158,7 @@ table {
     height: 164px;
     display: block;
     position: absolute;
-    border: 2px solid #898a86;
+    border: 2px solid #00bfff;
     border-radius: 50%;
     top: -2px;
     left: -2px;
@@ -164,7 +176,7 @@ table {
     height: 164px;
     display: block;
     position: absolute;
-    border: 2px solid #c1bebb;
+    border: 2px solid #016f93;
     border-radius: 50%;
     top: -2px;
     left: -2px;
@@ -185,7 +197,7 @@ table {
     position: absolute;
     width: 40px;
     height: 23px;
-    background-color: #556C82;
+    background-color: #004a8e;
 }
 
 .hexagon:before {
@@ -197,7 +209,7 @@ table {
     height: 0;
     border-left: 20px solid transparent;
     border-right: 20px solid transparent;
-    border-bottom: 11.5px solid #556C82;
+    border-bottom: 11.5px solid #004a8e;
 }
 
 .hexagon:after {
@@ -209,7 +221,7 @@ table {
     height: 0;
     border-left: 20px solid transparent;
     border-right: 20px solid transparent;
-    border-top: 11.5px solid #556C82;
+    border-top: 11.5px solid #004a8e;
 }
 
 .hexagon.hex_1 {
