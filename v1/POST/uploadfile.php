@@ -18,7 +18,11 @@ function uploadfile()
         http_response(400, ["error" => "Invalid base64 string"]);
     }
     if (!file_exists($file_path)) {
-        mkdir($file_path, 0777, true);
+        if (mkdir($file_path, 0777, true)) {
+
+        } else {
+            http_response(500, ["error" => "Error creating local directory"]);
+        }
     }
     if (file_put_contents($file_path . '/' . $file_name, $decodedData)) {
         include_once getcwd() . '/' . request_method . '/events.php';
