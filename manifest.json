@@ -34,6 +34,7 @@
         "v1\/GET\/select_rows.php",
         "v1\/GET\/select_plot.php",
         "v1\/GET\/select.php",
+        "v1\/GET\/tables_info.php",
         "v1\/POST\/index.html",
         "v1\/POST\/insert.php",
         "v1\/POST\/universe_insert_node.php",
