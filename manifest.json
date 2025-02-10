@@ -12,6 +12,7 @@
         "LICENSE",
         "README.md",
         "index.html",
+        "style.css",
         "v1\/deploy.php",
         "v1\/index.php",
         "v1\/cron\/index.html",
