@@ -371,6 +371,21 @@ function getPrimaryKey($tableName)
     }
     return null;
 }
+function sqlTables()
+{
+    if (defined("dbconn")) {
+        $sql = "SELECT TABLE_NAME,UPDATE_TIME FROM information_schema.tables WHERE     TABLE_SCHEMA = '" . ms_secrets['db']['name'] . "';";
+        $result = dbconn->query($sql);
+        $tables = [];
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $tables[] = ["table" => $row['TABLE_NAME'], "update" => $row['UPDATE_TIME'], "hash" => md5($row['UPDATE_TIME'] . $row['TABLE_NAME'])];
+            }
+        }
+        return $tables;
+    }
+    return null;
+}
 /**
  * Get the last update time of a table.
  *
