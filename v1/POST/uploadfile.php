@@ -1,4 +1,10 @@
 <?php
+/**
+ * uploadfile.php
+ * Endpoint to upload file to a local path using base64 encoding
+ * DO NOT MODIFY THIS FILE.
+ * @author ruvenss <ruvenss@gmail.com>
+ */
 function uploadfile()
 {
     $file_name = request_data['parameters']['file_name'] ?? null;
@@ -15,8 +21,10 @@ function uploadfile()
         mkdir($file_path, 0777, true);
     }
     if (file_put_contents($file_path . '/' . $file_name, $decodedData)) {
+        include_once getcwd() . '/' . request_method . '/events.php';
         http_response(200, ["values" => ["message" => "File uploaded successfully"]]);
     } else {
         http_response(500, ["error" => "Error uploading file"]);
     }
 }
+uploadfile();
