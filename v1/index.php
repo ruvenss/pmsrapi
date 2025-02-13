@@ -46,8 +46,9 @@ if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
                                 if (file_exists(getcwd() . '/general/custom_functions.php')) {
                                     include_once getcwd() . '/general/custom_functions.php';
                                 }
-                                if (is_readable(getcwd() . '/' . request_method . '/' . request_data['function'] . '.php')) {
-                                    include_once getcwd() . '/' . request_method . '/' . request_data['function'] . '.php';
+                                define("function_path", getcwd() . '/' . request_method . '/' . request_data['function'] . '.php');
+                                if (is_readable(function_path)) {
+                                    include_once function_path;
                                 } else {
                                     http_response(405, ["error" => "Function not found"]);
                                 }
