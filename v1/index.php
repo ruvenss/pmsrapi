@@ -1,4 +1,5 @@
 <?php
+
 /**
  * MicroService Restful API
  * 
@@ -9,12 +10,13 @@
  * @package  MicroService_Restful_API
  * @version  1.0.0
  * @since    1.0.0
- * @link    https://github.com/ruvenss/pmsrapi
+ * @link     https://github.com/ruvenss/pmsrapi
  * */
 include_once getcwd() . '/config.php';
 if (file_exists(config_path)) {
     define("ms_secrets", json_decode(file_get_contents(config_path), true));
     define("ms_logserver_token", ms_secrets['ms_logserver_token']);
+    define("ms_server_token", ms_secrets['ms_server_token']);
     define("ms_environment", ms_secrets['env']);
 } else {
     define("ms_secrets", []);
@@ -27,7 +29,7 @@ if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
         $token = explode(" ", $authorization);
         if (count($token) == 2) {
             $token = $token[1];
-            if (in_array($token, ms_secrets)) {
+            if ($token == ms_server_token) {
                 // Authorized
                 define("request_body", file_get_contents('php://input'));
                 if (isset(ms_secrets['allowed_functions'][request_method]) && ms_secrets['allowed_functions'][request_method] != null) {
@@ -59,13 +61,13 @@ if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
                     http_response(405, ["error" => "Method " . request_method . " Not Allowed"]);
                 }
             } else {
-                http_response(401, ["error" => "Unauthorized"]);
+                http_response(401, ["error" => "Invalid Token Unauthorized"]);
             }
         } else {
-            http_response(401, ["error" => "Unauthorized"]);
+            http_response(401, ["error" => "Unauthorized Bearer key missing"]);
         }
     } else {
-        http_response(401, ["error" => "Unauthorized"]);
+        http_response(401, ["error" => "Unauthorized you need a Bearer token"]);
     }
 } else {
     http_response(400, ["error" => "Bad Request only application/json is allowed"]);
