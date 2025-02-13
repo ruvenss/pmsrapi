@@ -11,65 +11,74 @@
  * @since    1.0.0
  * @link    https://github.com/ruvenss/pmsrapi
  * */
-include_once getcwd() . '/config.php';
-if (file_exists(config_path)) {
-    define("ms_secrets", json_decode(file_get_contents(config_path), true));
-    define("ms_logserver_token", ms_secrets['ms_logserver_token']);
-    define("ms_environment", ms_secrets['env']);
-} else {
-    define("ms_secrets", []);
+
+if (!stream_resolve_include_path(config_path)) {
     http_response(500, ["error" => "Configuration file not found at " . config_path]);
 }
-define("request_method", $_SERVER['REQUEST_METHOD']);
-if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
-    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-        $authorization = $_SERVER['HTTP_AUTHORIZATION'];
-        $token = explode(" ", $authorization);
-        if (count($token) == 2) {
-            $token = $token[1];
-            if (in_array($token, ms_secrets)) {
-                // Authorized
-                define("request_body", file_get_contents('php://input'));
-                if (isset(ms_secrets['allowed_functions'][request_method]) && ms_secrets['allowed_functions'][request_method] != null) {
-                    if (json_validate(request_body)) {
-                        define("request_data", json_decode(request_body, true));
-                        if (isset(request_data['function'])) {
-                            if (in_array(request_data['function'], ms_secrets['allowed_functions'][request_method])) {
-                                if (file_exists(getcwd() . '/vendor/autoload.php')) {
-                                    include_once getcwd() . '/vendor/autoload.php';
-                                }
-                                if (file_exists(getcwd() . '/general/db.php')) {
-                                    include_once getcwd() . '/general/db.php';
-                                }
-                                if (file_exists(getcwd() . '/general/custom_functions.php')) {
-                                    include_once getcwd() . '/general/custom_functions.php';
-                                }
-                                if (is_readable(getcwd() . '/' . request_method . '/' . request_data['function'] . '.php')) {
-                                    include_once getcwd() . '/' . request_method . '/' . request_data['function'] . '.php';
-                                } else {
-                                    http_response(405, ["error" => "Function not found"]);
-                                }
-                                http_response(405, ["error" => "Function not declared"]);
-                            }
-                        }
-                    } else {
-                        http_response(400, ["error" => "Bad Request invalid JSON"]);
-                    }
-                } else {
-                    http_response(405, ["error" => "Method " . request_method . " Not Allowed"]);
-                }
-            } else {
-                http_response(401, ["error" => "Unauthorized"]);
-            }
-        } else {
-            http_response(401, ["error" => "Unauthorized"]);
-        }
-    } else {
-        http_response(401, ["error" => "Unauthorized"]);
-    }
-} else {
+
+if ($_SERVER['CONTENT_TYPE'] !== 'application/json') {
     http_response(400, ["error" => "Bad Request only application/json is allowed"]);
 }
+
+if (!isset($_SERVER['HTTP_AUTHORIZATION'])) {
+    http_response(401, ["error" => "Unauthorized"]);
+}
+
+$token = explode(" ", $_SERVER['HTTP_AUTHORIZATION']);
+
+if (count($token) != 2) {
+    http_response(401, ["error" => "Unauthorized"]);
+}
+
+$token = $token[1];
+
+if (!in_array($token, ms_secrets)) {
+    http_response(401, ["error" => "Unauthorized"]);
+}
+
+include_once getcwd() . '/config.php';
+define("ms_secrets", json_decode(file_get_contents(config_path), true));
+define("ms_logserver_token", ms_secrets['ms_logserver_token']);
+define("ms_environment", ms_secrets['env']);
+define("request_method", $_SERVER['REQUEST_METHOD']);
+define("request_body", file_get_contents('php://input'));
+
+if (!isset(ms_secrets['allowed_functions'][request_method])) {
+    http_response(405, ["error" => "Method " . request_method . " Not Allowed"]);
+}
+
+if (!json_validate(request_body)) {
+    http_response(400, ["error" => "Bad Request invalid JSON"]);
+}
+            
+define("request_data", json_decode(request_body, true));
+
+if (!isset(request_data['function'])) {
+    http_response(405, ["error" => "Function not declared"]);
+}
+
+if (!in_array(request_data['function'], ms_secrets['allowed_functions'][request_method])) {
+    http_response(405, ["error" => "Function not declared"]);
+}
+
+if (stream_resolve_include_path(getcwd() . '/vendor/autoload.php')) {
+    include_once getcwd() . '/vendor/autoload.php';
+}
+
+if (stream_resolve_include_path(getcwd() . '/general/db.php')) {
+    include_once getcwd() . '/general/db.php';
+}
+
+if (stream_resolve_include_path(getcwd() . '/general/custom_functions.php')) {
+    include_once getcwd() . '/general/custom_functions.php';
+}
+ 
+if (is_readable(getcwd() . '/' . request_method . '/' . request_data['function'] . '.php')) {
+    include_once getcwd() . '/' . request_method . '/' . request_data['function'] . '.php';
+} else {
+    http_response(405, ["error" => "Function not found"]);
+}
+
 function http_response($http_code = 200, $data = null)
 {
     $response = ms_restful_responses;
