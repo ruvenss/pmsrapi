@@ -11,7 +11,6 @@ else
 fi
 CURRENT_DIR=$(pwd)
 PARENT_DIR=$(dirname "$CURRENT_DIR")
-SAMPLE_CONFIG="${CURRENT_DIR}/v1/sample_config.json"
 TOKEN=$(openssl rand -base64 24 | tr -d '=+/')
 # Define the cron job command
 CRON_JOB="0 * * * * cd $CURRENT_DIR;php update.php"

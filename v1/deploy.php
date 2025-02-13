@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Deploy the Microservice to the server
  * This script will create a systemd service for the Microservice
@@ -16,8 +17,7 @@ if (PHP_OS_FAMILY !== 'Linux') {
 define("project_path", dirname(getcwd(), 1));
 echo "🪂 Deploying Microservice project in " . project_path . "\n";
 if (!file_exists(project_path . '/v1/config.php')) {
-    echo "🟠 Please set your config file first at " . project_path . "/v1/config.php\n";
-    echo "  You can use the sample config file at " . project_path . "/v1/config_sample.php\n";
+    echo "🟠 Please complete your config file first at " . project_path . "/v1/config.php\n";
     echo "  Then run this script again\n";
     die();
 }
