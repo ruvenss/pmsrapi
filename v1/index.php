@@ -70,6 +70,15 @@ if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
 } else {
     http_response(400, ["error" => "Bad Request only application/json is allowed"]);
 }
+
+/**
+ * Outputs a proper HTTP response with multiple predefined headers, closes the database connection and then dies.
+ * 
+ * @param string|integer                $http_code              `optional` The HTTP code, reference: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+ * @param mixed                         $data                   The data payload seen in the result `{"success": true, "data": $data}`
+ * 
+ * @return void                                                 
+ */
 function http_response($http_code = 200, $data = null)
 {
     $response = ms_restful_responses;
@@ -94,6 +103,18 @@ function http_response($http_code = 200, $data = null)
     }
     die();
 }
+
+/**
+ * Log an event to the log server
+ * 
+ * @param string                        $node                   The microservice or api you want to reach.
+ * @param string                        $function               The function you want to reach.
+ * @param mixed                         $payload                The payload that the function requires.
+ * @param mixed                         $parameters             The parameters that the function requires.
+ * @param string                        $method                 The used HTTP method.
+ * 
+ * @return mixed                                                Returns false on failure otherwise HTTP reponse.
+ */
 function http_rest($node, $function, $payload, $parameters, $method = "GET")
 {
     if (isset(ms_secrets['universe'])) {
@@ -145,19 +166,22 @@ function http_rest($node, $function, $payload, $parameters, $method = "GET")
         return false;
     }
 }
+
 /**
  * Log an event to the log server
- * @param string $changes = {"field":"value","field2":"value2"} or null
- * @param string $action = 'created','updated','deleted','view','bitbucket_notification_received','github_notification_received'/.. etc up to you
- * @param string $log_type = 'task','project','user','team','notification','bitbucket','github','log' etc up to you
- * @param int $created_by User ID
- * @param string $log_type_title = if is not defined the MicroService Name will be used
- * @param int $log_type_id = if is not defined 1 will be used
- * @param string $log_for = if is not defined the MicroService Name will be used (max 30 characters)
- * @param int $log_for_id = if is not defined 0 will be used
- * @param string $log_for2 = if is not defined the MicroService Name will be used
- * @param int $log_for_id2 = if is not defined 0 will be used  (max 30 characters)
- * @param int $deleted = 0 or 1 if the record was deleted
+ * 
+ * @param string                        $changes                {"field":"value","field2":"value2"} or null
+ * @param string                        $action                 'created','updated','deleted','view','bitbucket_notification_received','github_notification_received'/.. etc up to you
+ * @param string                        $log_type               'task','project','user','team','notification','bitbucket','github','log' etc up to you
+ * @param int                           $created_by             User ID
+ * @param string                        $log_type_title         If it's not defined the MicroService Name will be used
+ * @param int                           $log_type_id            If it's not defined 1 will be used
+ * @param string                        $log_for                If it's not defined the MicroService Name will be used (max 30 characters)
+ * @param int                           $log_for_id             If it's not defined 0 will be used
+ * @param string                        $log_for2               If it's not defined the MicroService Name will be used
+ * @param int                           $log_for_id2            If it's not defined 0 will be used  (max 30 characters)
+ * @param int                           $deleted                0 or 1 if the record was deleted
+ * 
  * @return boolean
  */
 function log_event($changes, $env = "dev", $action = "updated", $log_type = "task", $created_by = 1, $log_type_title = ms_name, $log_type_id = 1, $log_for = ms_name, $log_for_id = 0, $log_for2 = ms_name, $log_for_id2 = null, $deleted = 0)
