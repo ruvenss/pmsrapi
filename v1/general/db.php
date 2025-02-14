@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of the Micro Service REST API
  * DO NOT ADD YOUR CODE HERE, THIS FILE WILL BE AUTOMATICALLY UPDATED AND YOUR CODE WILL BE REMOVED
@@ -425,4 +426,16 @@ function getTableLastUpdateTime($tableName)
     } else {
         return null;
     }
+}
+function sqlCreateDatabase($dbname)
+{
+    if (defined("dbconn")) {
+        $sql = "CREATE DATABASE IF NOT EXISTS $dbname CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
+        if (dbconn->query($sql) === TRUE) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return false;
 }
