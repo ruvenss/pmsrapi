@@ -21,9 +21,9 @@ apt upgrade -y
 apt install unzip
 mkdir /home/my_microservice
 cd /home/my_microservice
-wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.15.zip -O "pmsrapi.zip"
+wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.16.zip -O "pmsrapi.zip"
 unzip -qq pmsrapi.zip && rm pmsrapi.zip
-mv pmsrapi-0.0.15/* /home/my_microservice
+mv pmsrapi-0.0.16/* /home/my_microservice
 ./install.sh
 ```
 
@@ -44,6 +44,7 @@ For any issues please contact me. Made with love in Belgium
 ## Features
 
 - Basic CRUD
+- Advance CRUD
 - Upload Files
 - Download Files
 - WebHooks

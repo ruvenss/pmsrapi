@@ -3,6 +3,7 @@
 # Description: This script installs the autoupdate script in the crontab, the service, and the basic configuration
 # Get the current and parent directory
 # Check if the current user is root
+clear
 if [ "$EUID" -eq 0 ]; then
     echo "Starting installation..."
 else
