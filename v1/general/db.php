@@ -408,11 +408,8 @@ function getTableLastUpdateTime($tableName)
     // Prepare the SQL statement
     if ($stmt = dbconn->prepare($sql)) {
         // Bind parameters (database name and table name)
-        //$stmt->bind_param("ss", ms_secrets['db']['name'], $tableName);
-
         // Execute the query
         $stmt->execute();
-
         // Get the result
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
