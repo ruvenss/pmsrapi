@@ -73,29 +73,25 @@ if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
 } else {
     http_response(400, ["error" => "Bad Request only application/json is allowed"]);
 }
-function http_response($http_code = 200, $data = null)
+function ms_universe_wrap_up($http_code,$response=null)
 {
-    $response = ms_restful_responses;
-    $http_headers = ms_http_headers;
-    $success = false;
-    if ($http_code == 200) {
-        $success = true;
-    }
-    header("HTTP/1.1 $http_code $response[$http_code]");
+    header("HTTP/1.1 $http_code " . ms_restful_responses[$http_code]);
     header("X-Powered-By: PMSRAPI");
-    foreach ($http_headers as $key => $value) {
-        header("$key: $value");
-    }
     header("MicroService: " . ms_name);
     header("MicroService-Version: " . ms_version);
-    if ($data) {
-        $response = ["success" => $success, "data" => $data];
-        echo json_encode($response);
+    array_map(function($key, $value) { header("$key: $value"); }, array_keys(ms_http_headers), array_values(ms_http_headers));
+    if (isset($response)) {
+        echo $response;
     }
     if (defined("dbconn")) {
         dbconn->close();
     }
     die();
+}
+function http_response($http_code = 200, $data = null)
+{
+    $response = ["success" => $http_code == 200, "data" => $data];
+    ms_universe_wrap_up($http_code, json_encode($response));
 }
 function http_rest($node, $function, $payload, $parameters, $method = "GET")
 {
