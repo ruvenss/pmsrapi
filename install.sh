@@ -32,6 +32,73 @@ CRON_EXISTS_WEEK=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_WEEK")
 CRON_EXISTS_MONTH=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_MONTH") 
 CRON_EXISTS_YEAR=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_YEAR")
 platform='unknown'
+GITIGNORE='# Ignore the Auto updater
+update.php
+install.sh
+manifest.json
+#Visual Code, AI and its plugins
+.qodo/*
+.vscode/*
+#Ignore the Framework Documentation
+documentation/*
+index.html
+#Ignore the Framework templates
+v1/vhost.conf
+v1/index.php
+v1/htaaccess.conf
+#Configuration Files never to be included
+v1/config.php
+#Ignore the Framework
+v1/deploy.php
+v1/cron/index.html
+v1/cron/day.php
+v1/cron/hour.php
+v1/cron/second.php
+v1/cron/minute.php
+v1/cron/month.php
+v1/cron/week.php
+v1/cron/year.php
+v1/DELETE/index.html
+v1/DELETE/delete.php
+v1/DELETE/events.php
+v1/DELETE/remove_instance.php
+v1/DELETE/universe_delete_node.php
+v1/general/index.html
+v1/general/db.php
+v1/general/manifest.php
+v1/GET/index.html
+v1/GET/count_rows.php
+v1/GET/events.php
+v1/GET/info.php
+v1/GET/select_multi_table.php
+v1/GET/select_plot.php
+v1/GET/select_row.php
+v1/GET/select_rows.php
+v1/GET/select.php
+v1/GET/sum_rows.php
+v1/GET/tables_info.php
+v1/locales/en.json
+v1/locales/index.html
+v1/locales/README.md
+v1/locales/fr.json
+v1/locales/pt.json
+v1/locales/ru.json
+v1/locales/zh.json
+v1/locales/nl.json
+v1/locales/it.json
+v1/locales/de.json
+v1/locales/es.json
+v1/POST/index.html
+v1/POST/insert.php
+v1/POST/events.php
+v1/POST/uploadfile.php
+v1/POST/new_instance.php
+v1/POST/universe_create_node.php
+v1/PUT/index.html
+v1/PUT/update.php
+v1/PUT/events.php
+v1/webhooks/index.html
+'
 unamestr=$(uname)
 sudo clear
 if [[ "$unamestr" == 'Linux' ]]; then
@@ -82,6 +149,7 @@ define(\"ms_http_headers\", [\"Content-Type\" => \"application/json\", \"Access-
 define(\"ms_logserver\", \"${mms_logserver}\");
 "
         echo "$CONFIG_DATA" > $CURRENT_DIR/v1/config.php
+        echo "$GITIGNORE" > $CURRENT_DIR/.gitignore
         httpport=$(dialog --backtitle "PMSRAPI" --title 'MicroService HTTP' --inputbox 'Enter the port where this service will live' 7 60 "8001"  --output-fd 1)
         httphost=$(dialog --backtitle "PMSRAPI" --title 'MicroService HTTP' --inputbox 'Enter the IP where this service will live' 7 60 "0.0.0.0"  --output-fd 1)
         environtment=$(dialog --menu "PMSRAPI Environment" 20 45 35 dev "Development" test "Test" stage "Staging" prod "Production" --output-fd 1)
@@ -158,7 +226,15 @@ define(\"ms_logserver\", \"${mms_logserver}\");
         sleep 3
         if [ -z "$CRON_EXISTS" ]; then
             # Add the cron job
-            (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+            if dialog --title 'Database' --backtitle "PMSRAPI" --yesno "Is your service connected to MySQL or MariaDB?" 7 60; then
+                 (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+                dialog --title 'CRONJOB' --infobox 'Auto Update of the framework has been added to your CRONJOBS' 7 60
+                sleep 3
+            else
+                dialog --title 'CRONJOB' --infobox 'PMSRAPI will never aupdate automatically, bye bye security and patches, you need to run php update.php manually' 7 60
+                sleep 3
+            fi
+           
             dialog --title 'CRONJOB' --infobox 'Auto Update of the framework has been added to your CRONJOBS' 7 60
             sleep 3
         else
