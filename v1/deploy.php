@@ -10,6 +10,11 @@
  * @link   https://github.com/ruvenss/pmsrapi
  * IF YOU ADD YOUR CODE HERE IT WILL BE OVERWRITTEN ON THE NEXT UPDATE
  */
+
+if (!defined('STDIN')) {
+    header("HTTP/1.0 404 Not Found", true, 404);
+    die();
+}
 if (PHP_OS_FAMILY !== 'Linux') {
     echo "🔴 This script only works on Ubuntu 22, and >24\n";
     die();
