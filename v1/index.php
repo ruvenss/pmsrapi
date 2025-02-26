@@ -13,14 +13,21 @@
  * @link     https://github.com/ruvenss/pmsrapi
  * */
 include_once getcwd() . '/config.php';
-if (file_exists(config_path)) {
-    define("ms_secrets", json_decode(file_get_contents(config_path), true));
-    define("ms_logserver_token", ms_secrets['ms_logserver_token']);
-    define("ms_server_token", ms_secrets['ms_server_token']);
-    define("ms_environment", ms_secrets['env']);
+$configPath = getcwd() . '/config.json';
+if (file_exists($configPath)) {
+    $configContent = file_get_contents($configPath);
+    $configData = json_decode($configContent, true);
+    if (json_last_error() === JSON_ERROR_NONE) {
+        define("ms_secrets", $configData);
+        define("ms_logserver_token", $configData['ms_logserver_token']);
+        define("ms_server_token", $configData['ms_server_token']);
+        define("ms_environment", $configData['env']);
+    } else {
+        http_response(500, ["error" => "Invalid JSON in configuration file"]);
+    }
 } else {
     define("ms_secrets", []);
-    http_response(500, ["error" => "Configuration file not found at " . config_path]);
+    http_response(500, ["error" => "Configuration file not found at " . $configPath]);
 }
 define("request_method", $_SERVER['REQUEST_METHOD']);
 if ($_SERVER['CONTENT_TYPE'] === 'application/json') {

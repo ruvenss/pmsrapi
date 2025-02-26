@@ -162,7 +162,6 @@ function sqlSelect($table, $field, $where, $orderby = "", $limit = "")
             if (strlen($limit) > 0) {
                 $sqlquery .= " LIMIT $limit";
             }
-            //error_log("sqlSelect empty result : $sqlquery",0);
             $result = dbconn->query($sqlquery);
             if (!$result) {
                 echo $sqlquery;
@@ -180,26 +179,21 @@ function sqlSelect($table, $field, $where, $orderby = "", $limit = "")
 function sqlSelectRow($table, $fields, $where, $orderby = "")
 {
     if (defined("dbconn")) {
-        if (strlen($table) > 0 && strlen($fields) > 0) {
+        if (!empty($table) && !empty($fields)) {
             $sqlquery = "SELECT $fields FROM `$table`";
-            if (strlen($where) > 0) {
+            if (!empty($where)) {
                 $sqlquery .= " WHERE ($where)";
             }
-            if (strlen($orderby) > 0) {
+            if (!empty($orderby)) {
                 $sqlquery .= " ORDER BY `$orderby`";
             }
             $sqlquery .= " LIMIT 1";
             $result = dbconn->query($sqlquery);
-            if (!$result) {
-                return [];
-            } else {
-                while ($row = $result->fetch_assoc()) {
-                    return $row;
-                }
+            if ($result && $row = $result->fetch_assoc()) {
+                return $row;
             }
-        } else {
-            return [];
         }
+        return [];
     } else {
         http_response(500, ["error" => "Internal Server Error"]);
     }
