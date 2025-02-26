@@ -79,7 +79,7 @@ function ms_universe_wrap_up($http_code,$response=null)
     header("X-Powered-By: PMSRAPI");
     header("MicroService: " . ms_name);
     header("MicroService-Version: " . ms_version);
-    array_map(function($key, $value) { header("$key: $value"); }, array_keys(ms_http_headers), array_values(ms_http_headers));
+    array_walk(ms_http_headers, function ($value, $key) { header("$key: $value"); });
     if (isset($response)) {
         echo $response;
     }
