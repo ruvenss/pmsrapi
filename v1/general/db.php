@@ -15,13 +15,17 @@ if (!defined("ms_secrets")) {
 if (!defined("dbconn")) {
     if (isset(ms_secrets['db']) && isset(ms_secrets['db']['host'])) {
         $mysqli = new mysqli(ms_secrets['db']['host'], ms_secrets['db']['username'], ms_secrets['db']['password'], ms_secrets['db']['name']);
-        if (!$mysqli) {
+        if ($mysqli->connect_error) {
             if (ms_secrets['local_log']['level'] == 'errors') {
-                sqlLog('dbconn', print_r(ms_secrets['db'], true), 'Error');
+                sqlLog('dbconn', print_r(ms_secrets['db'], true), 'Error: ' . $mysqli->connect_error);
             }
             http_response(500, ["error" => "Internal Server Error"]);
+            exit();
         }
         define("dbconn", $mysqli);
+    } else {
+        http_response(500, ["error" => "Database configuration not found"]);
+        exit();
     }
 }
 function sqlInsert($table, $fields = array(), $values = array(), $onduplicate = null)
