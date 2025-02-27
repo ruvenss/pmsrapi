@@ -9,23 +9,19 @@
 function update()
 {
     $request_data = $_REQUEST; // Assuming request data is in $_REQUEST
-    if (!isset($request_data['parameters']['table']) || !isset($request_data['parameters']['values'])) {
-        http_response(400, ["error" => "Missing table or values"]);
+    // Validate required parameters
+    $required_params = ['table', 'values', 'where'];
+    foreach ($required_params as $param) {
+        if (!isset($request_data['parameters'][$param])) {
+            http_response(400, ["error" => "Missing $param parameter"]);
+            return;
+        }
+    }
+    // Validate values parameter
+    if (!is_array($request_data['parameters']['values']) || empty($request_data['parameters']['values'])) {
+        http_response(400, ["error" => "Values must be a non-empty array"]);
         return;
     }
-    if (!isset($request_data['parameters']['where'])) {
-        http_response(400, ["error" => "Missing where clause"]);
-        return;
-    }
-    if (!is_array($request_data['parameters']['values'])) {
-        http_response(400, ["error" => "Values and Columns must be an array"]);
-        return;
-    }
-    if (count($request_data['parameters']['values']) == 0) {
-        http_response(400, ["error" => "Values and Columns must not be empty"]);
-        return;
-    }
-
     $values_keys = $request_data['parameters']['values'];
     $keys = [];
     $values = [];
@@ -37,7 +33,6 @@ function update()
         $keys[] = $key;
         $values[] = $value;
     }
-
     if (sqlUpdate($request_data['parameters']['table'], $keys, $values, $request_data['parameters']['where'])) {
         $affectedRows = dbconn->affected_rows;
         $last_update = getTableLastUpdateTime($request_data['parameters']['table']);
