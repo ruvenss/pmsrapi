@@ -227,7 +227,7 @@ define(\"ms_logserver\", \"${mms_logserver}\");
         if [ -z "$CRON_EXISTS" ]; then
             # Add the cron job
             if dialog --title 'Database' --backtitle "PMSRAPI" --yesno "Is your service connected to MySQL or MariaDB?" 7 60; then
-                 (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+                (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
                 dialog --title 'CRONJOB' --infobox 'Auto Update of the framework has been added to your CRONJOBS' 7 60
                 sleep 3
             else
