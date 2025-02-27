@@ -150,6 +150,7 @@ define(\"ms_logserver\", \"${mms_logserver}\");
 "
         echo "$CONFIG_DATA" > $CURRENT_DIR/v1/config.php
         echo "$GITIGNORE" > $CURRENT_DIR/.gitignore
+        chmod +x $CURRENT_DIR/v1/cron/seconds.sh
         httpport=$(dialog --backtitle "PMSRAPI" --title 'MicroService HTTP' --inputbox 'Enter the port where this service will live' 7 60 "8001"  --output-fd 1)
         httphost=$(dialog --backtitle "PMSRAPI" --title 'MicroService HTTP' --inputbox 'Enter the IP where this service will live' 7 60 "0.0.0.0"  --output-fd 1)
         environtment=$(dialog --menu "PMSRAPI Environment" 20 45 35 dev "Development" test "Test" stage "Staging" prod "Production" --output-fd 1)
@@ -239,15 +240,6 @@ define(\"ms_logserver\", \"${mms_logserver}\");
             sleep 3
         else
             dialog --title 'CRONJOB' --infobox 'It seems you already installed before, and the autoupdate was already activated' 7 60
-            sleep 3
-        fi
-        if [ -z "$CRON_EXISTS_SECOND" ]; then
-            # Add the cron job
-            (crontab -l 2>/dev/null; echo "$CRON_JOB_SECOND") | crontab -
-            dialog --title 'CRONJOB' --infobox 'Secondly CronJob has been added to your CRONJOBS' 7 60
-            sleep 3
-        else
-            dialog --title 'CRONJOB' --infobox 'It seems you already installed seconds execution cron job before, and the autoupdate was already activated' 7 60
             sleep 3
         fi
         if [ -z "$CRON_EXISTS_MINUTE" ]; then

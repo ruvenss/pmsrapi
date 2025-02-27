@@ -57,5 +57,38 @@ WantedBy=multi-user.target';
     exec("systemctl start " . ms_name . ".service");
     echo "🚦 enabling the service to start at boot:\n";
     exec("systemctl enable " . ms_name . ".service");
+} else {
+    echo "🟢 " . ms_name . ".service already exists\n";
+}
+echo "🪂 Deploying Every Second Cron Job Execution at " . project_path . "/v1/cron/seconds.sh\n";
+if (!file_exists(project_path . '/v1/cron/seconds.sh')) {
+    echo "🟠 Please create the seconds.sh file first at " . project_path . "/v1/cron/seconds.sh\n";
+    echo "  Then run this script again\n";
     die();
+}
+$seconds_service_name = ms_name . "_seconds";
+if (!file_exists('/etc/systemd/system/' . $seconds_service_name . '.service')) {
+    echo "🟠 " . $seconds_service_name . ".service is missing\n";
+    $ini = '[Unit]
+Description=' . ms_description . ' Every Second Cron Job Execution
+After=network.target
+
+[Service]
+ExecStart=cd ' . project_path . '/v1/cron && ./seconds.sh
+Restart=always
+User=root
+Group=root
+WorkingDirectory=' . project_path . '/v1/cron
+
+[Install]
+WantedBy=multi-user.target';
+    file_put_contents('/etc/systemd/system/' . $seconds_service_name . '.service', $ini);
+    echo "🟢 " . $seconds_service_name . ".service has been created\n🚦 Reloading daemons";
+    exec("systemctl daemon-reload");
+    echo "🚦 starting the service:\n";
+    exec("systemctl start " . $seconds_service_name . ".service");
+    echo "🚦 enabling the service to start at boot:\n";
+    exec("systemctl enable " . $seconds_service_name . ".service");
+} else {
+    echo "🟢 " . $seconds_service_name . ".service already exists\n";
 }
