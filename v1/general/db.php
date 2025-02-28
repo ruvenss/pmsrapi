@@ -14,7 +14,7 @@ if (!defined("ms_secrets")) {
 }
 if (!defined("dbconn")) {
     if (isset(ms_secrets['db']) && isset(ms_secrets['db']['host'])) {
-        $mysqli = new mysqli(ms_secrets['db']['host'], ms_secrets['db']['username'], ms_secrets['db']['password'], ms_secrets['db']['name']);
+        $mysqli = new mysqli(ms_secrets['db']['host'], ms_secrets['db']['username'], ms_secrets['db']['password'], ms_secrets['db']['name'], ms_secrets['db']['port']);
         if (!$mysqli) {
             if (ms_secrets['local_log']['level'] == 'errors') {
                 sqlLog('dbconn', print_r(ms_secrets['db'], true), 'Error');
