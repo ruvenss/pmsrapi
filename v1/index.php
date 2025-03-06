@@ -131,18 +131,14 @@ function http_rest($node, $function, $payload, $parameters, $method = "GET")
                 'Authorization: Bearer ' . $token
             ),
         ));
-        curl_exec($curl);
+        $response = curl_exec($curl);
+        curl_close($curl);
         if (curl_errno($curl)) {
-            curl_close($curl);
             return false;
+        } elseif (json_validate($response)) {
+            return json_decode($response, true);
         } else {
-            $response = curl_exec($curl);
-            curl_close($curl);
-            if (json_validate($response)) {
-                return json_decode($response, true);
-            } else {
-                return $response;
-            }
+            return $response;
         }
     } else {
         return false;
