@@ -98,6 +98,12 @@ v1/PUT/index.html
 v1/PUT/update.php
 v1/PUT/events.php
 v1/webhooks/index.html
+v1/webhooks/data
+v1/webhooks/logs
+v1/webhooks/queue
+v1/webhooks/data/*
+v1/webhooks/logs/*
+v1/webhooks/queue/*
 '
 unamestr=$(uname)
 sudo clear
