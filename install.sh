@@ -191,6 +191,7 @@ define(\"ms_logserver\", \"${mms_logserver}\");
         \"GET\":[],
         \"DELETE\":[]  
     },
+    \"ms_server_token\":\"${mms_server_token}\",
     \"ms_logserver_token\":\"${TOKEN}\",
     \"ms_logserver_url\":\"${mms_logserver}\",
     \"env\": \"${environtment}\",
