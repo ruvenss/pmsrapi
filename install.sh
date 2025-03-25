@@ -110,6 +110,41 @@ sudo clear
 if [[ "$unamestr" == 'Linux' ]]; then
     platform='linux'
     echo "$platform OS Detected. Installing MicroService for Debian like Distros"
+    if ! command -v php &> /dev/null; then
+        echo "❌ PHP is not installed."
+        echo "Installing PHP 8.3..."
+        sudo apt install -qq -y software-properties-common > /dev/null 2>&1
+        sudo add-apt-repository -y ppa:ondrej/php > /dev/null 2>&1
+        sudo apt update -qq > /dev/null 2>&1
+        sudo apt install -qq -y php > /dev/null 2>&1
+        sudo apt install -qq -y php-cli > /dev/null 2>&1
+        sudo apt install -qq -y php-common > /dev/null 2>&1
+        sudo apt install -qq -y php-json > /dev/null 2>&1
+        sudo apt install -qq -y php-mysql > /dev/null 2>&1
+        sudo apt install -qq -y php-xml > /dev/null 2>&1
+        sudo apt install -qq -y php-mbstring > /dev/null 2>&1
+        sudo apt install -qq -y php-curl > /dev/null 2>&1
+        sudo apt install -qq -y php-zip > /dev/null 2>&1
+        sudo apt install -qq -y php-gd > /dev/null 2>&1
+        sudo apt install -qq -y php-bcmath > /dev/null 2>&1
+        sudo apt install -qq -y php-xmlrpc > /dev/null 2>&1
+        sudo apt install -qq -y php-intl > /dev/null 2>&1
+        sudo apt install -qq -y php-ldap > /dev/null 2>&1
+        sudo apt install -qq -y php-imagick > /dev/null 2>&1
+        sudo apt install -qq -y php-tidy > /dev/null 2>&1
+        sudo apt install -qq -y php-xmlrpc > /dev/null 2>&1
+        sudo apt install -qq -y php-soap > /dev/null 2>&1
+        sudo apt install -qq -y php-redis > /dev/null 2>&1
+        sudo apt install -qq -y php-memcached > /dev/null 2>&1
+        sudo apt install -qq -y php-memcache > /dev/null 2>&1
+        sudo apt install -qq -y php-mongodb > /dev/null 2>&1
+    fi
+    # Check if PHP 8.3 is installed
+    if php -v | grep -q "PHP 8.3"; then
+        echo "✅ PHP 8.3 is installed."
+    else
+        echo "❌ PMSRAPI requieres PHP 8.3, please ensure that your Linux distro supports PHP 8.3 or greater."
+    fi
     echo "⚙️ Installing Dependencies..."
     sudo apt install -qq -y shc  > /dev/null 2>&1
     sudo apt install -qq -y unzip > /dev/null 2>&1
