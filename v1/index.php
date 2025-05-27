@@ -46,7 +46,7 @@ if (strpos($_SERVER['CONTENT_TYPE'], 'application/json') === 0) {
                                 if (file_exists(getcwd() . '/vendor/autoload.php')) {
                                     include_once getcwd() . '/vendor/autoload.php';
                                 }
-                                if (file_exists(getcwd() . '/general/db.php')) {
+                                if (isset(ms_secrets['db']) && file_exists(getcwd() . '/general/db.php')) {
                                     include_once getcwd() . '/general/db.php';
                                 }
                                 if (file_exists(getcwd() . '/general/custom_functions.php')) {
