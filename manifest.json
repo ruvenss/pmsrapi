@@ -28,6 +28,7 @@
         "v1\/DELETE\/events.php",
         "v1\/DELETE\/universe_delete_node.php",
         "v1\/GET\/index.html",
+        "v1\/GET\/downloadfile.php",
         "v1\/GET\/count_rows.php",
         "v1\/GET\/info.php",
         "v1\/GET\/select_row.php",
