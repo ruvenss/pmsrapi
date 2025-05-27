@@ -13,9 +13,8 @@
  * @link     https://github.com/ruvenss/pmsrapi
  * */
 include_once getcwd() . '/config.php';
-$configPath = getcwd() . '/config.json';
-if (file_exists($configPath)) {
-    $configContent = file_get_contents($configPath);
+if (file_exists(config_path)) {
+    $configContent = file_get_contents(config_path);
     $configData = json_decode($configContent, true);
     if (json_last_error() === JSON_ERROR_NONE) {
         define("ms_secrets", $configData);
@@ -27,10 +26,10 @@ if (file_exists($configPath)) {
     }
 } else {
     define("ms_secrets", []);
-    http_response(500, ["error" => "Configuration file not found at " . $configPath]);
+    http_response(500, ["error" => "Configuration file not found at " . getcwd() . $configPath]);
 }
 define("request_method", $_SERVER['REQUEST_METHOD']);
-if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
+if (strpos($_SERVER['CONTENT_TYPE'], 'application/json') === 0) {
     if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
         $authorization = $_SERVER['HTTP_AUTHORIZATION'];
         $token = explode(" ", $authorization);
@@ -39,7 +38,7 @@ if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
             if ($token == ms_server_token) {
                 // Authorized
                 define("request_body", file_get_contents('php://input'));
-                if (isset(ms_secrets['allowed_functions'][request_method]) && ms_secrets['allowed_functions'][request_method] != null) {
+                if (isset(ms_secrets['allowed_functions']) && isset(ms_secrets['allowed_functions'][request_method]) && ms_secrets['allowed_functions'][request_method] != null) {
                     if (json_validate(request_body)) {
                         define("request_data", json_decode(request_body, true));
                         if (isset(request_data['function'])) {
@@ -53,7 +52,8 @@ if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
                                 if (file_exists(getcwd() . '/general/custom_functions.php')) {
                                     include_once getcwd() . '/general/custom_functions.php';
                                 }
-                                define("function_path", getcwd() . '/' . request_method . '/' . request_data['function'] . '.php');
+                                $sanitized_function = preg_replace('/[^a-zA-Z0-9_]/', '', request_data['function']);
+                                define("function_path", getcwd() . '/' . request_method . '/' . $sanitized_function . '.php');
                                 if (is_readable(function_path)) {
                                     include_once function_path;
                                 } else {
@@ -74,7 +74,7 @@ if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
         } else {
             http_response(401, ["error" => "Unauthorized Bearer key missing"]);
         }
-    } else {
+        http_response(401, ["error" => "Unauthorized you need a Bearer token in the format 'Authorization: Bearer <token>'"]);
         http_response(401, ["error" => "Unauthorized you need a Bearer token"]);
     }
 } else {
