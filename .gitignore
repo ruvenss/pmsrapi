@@ -1,2 +1,11 @@
 v1/config.php
 .vscode
+.github
+.qodo
+webhooks/data
+webhooks/logs
+webhooks/queue
+webhooks/queue.lock
+webhooks/data/*
+webhooks/logs/*
+webhooks/queue/*

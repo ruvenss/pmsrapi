@@ -17,11 +17,15 @@ if (!defined("dbconn")) {
         $mysqli = new mysqli(ms_secrets['db']['host'], ms_secrets['db']['username'], ms_secrets['db']['password'], ms_secrets['db']['name'], ms_secrets['db']['port']);
         if (!$mysqli) {
             if (ms_secrets['local_log']['level'] == 'errors') {
-                sqlLog('dbconn', print_r(ms_secrets['db'], true), 'Error');
+                sqlLog('dbconn', print_r(ms_secrets['db'], true), 'Error: ' . $mysqli->connect_error);
             }
             http_response(500, ["error" => "Internal Server Error"]);
+            exit();
         }
         define("dbconn", $mysqli);
+    } else {
+        http_response(500, ["error" => "Database configuration not found"]);
+        exit();
     }
 }
 function sqlInsert($table, $fields = array(), $values = array(), $onduplicate = null)
@@ -100,49 +104,39 @@ function sqlDelete($table, $where)
 function sqlUpdate($table, $fields = [], $values = [], $where = null)
 {
     if (defined("dbconn")) {
-
         if (strlen($table) > 0 && sizeof($values) == sizeof($fields)) {
-
             $sqlquery = "UPDATE `$table` SET ";
+            $updateFields = [];
             for ($i = 0; $i < sizeof($values); $i++) {
                 if (strtoupper($values[$i]) == "NOW()") {
-                    $values[$i] = "NOW()";
+                    $updateFields[] = "`" . $fields[$i] . "`=NOW()";
                 } elseif (strtoupper($values[$i]) == "NULL") {
-                    $values[$i] = "NULL";
+                    $updateFields[] = "`" . $fields[$i] . "`=NULL";
                 } else {
-                    $values[$i] = '"' . mysqli_real_escape_string(dbconn, $values[$i]) . '"';
+                    $updateFields[] = "`" . $fields[$i] . "`='" . mysqli_real_escape_string(dbconn, $values[$i]) . "'";
                 }
-                $sqlquery .= "`" . $fields[$i] . "`=" . $values[$i] . ",";
             }
-            $sqlquery = rtrim($sqlquery, ",");
+            $sqlquery .= implode(",", $updateFields);
             if ($where != null) {
                 $sqlquery .= " WHERE (" . $where . ")";
             }
-
             if (dbconn->query($sqlquery) === TRUE) {
-
-                // Check if rows were actually updated
-                if (dbconn->affected_rows > 0) {
-                    if (ms_secrets['local_log']['level'] == 'info' || ms_secrets['local_log']['level'] == 'errors') {
-                        sqlLog('sqlUpdate', $sqlquery, dbconn->affected_rows . " rows updated");
-                    }
-                    return true;
-                } else {
-                    if (ms_secrets['local_log']['level'] == 'info' || ms_secrets['local_log']['level'] == 'errors') {
-                        sqlLog('sqlUpdate', $sqlquery, "0 rows updated");
-                    }
-                    return false;
+                $affectedRows = dbconn->affected_rows;
+                if (ms_secrets['local_log']['level'] == 'info' || ms_secrets['local_log']['level'] == 'errors') {
+                    sqlLog('sqlUpdate', $sqlquery, $affectedRows . " rows updated");
                 }
+                return $affectedRows > 0;
             } else {
-                if (ms_secrets['local_log']['level'] == 'errors' || ms_secrets['local_log']['level'] == 'errors') {
+                if (ms_secrets['local_log']['level'] == 'errors') {
                     sqlLog('sqlUpdate', $sqlquery, "Error");
                 }
                 return false;
             }
         } else {
-            if (ms_secrets['local_log']['level'] == 'errors' || ms_secrets['local_log']['level'] == 'errors') {
+            if (ms_secrets['local_log']['level'] == 'errors') {
                 sqlLog('sqlUpdate', $table . " fields=" . sizeof($fields) . " values=" . sizeof($values) . " where=$where ", 'Error');
             }
+            return false;
         }
     } else {
         http_response(500, ["error" => "Internal Server Error"]);
@@ -151,26 +145,22 @@ function sqlUpdate($table, $fields = [], $values = [], $where = null)
 function sqlSelect($table, $field, $where, $orderby = "", $limit = "")
 {
     if (defined("dbconn")) {
-        if (strlen($table) > 0 && strlen($field) > 0) {
+        if (!empty($table) && !empty($field)) {
             $sqlquery = "SELECT `$field` FROM `$table`";
-            if (strlen($where) > 0) {
+            if (!empty($where)) {
                 $sqlquery .= " WHERE ($where)";
             }
-            if (strlen($orderby) > 0) {
+            if (!empty($orderby)) {
                 $sqlquery .= " ORDER BY `$orderby`";
             }
-            if (strlen($limit) > 0) {
+            if (!empty($limit)) {
                 $sqlquery .= " LIMIT $limit";
             }
-            //error_log("sqlSelect empty result : $sqlquery",0);
             $result = dbconn->query($sqlquery);
-            if (!$result) {
-                echo $sqlquery;
-                error_log("sqlSelect empty result : $sqlquery", 0);
+            if ($result && $row = $result->fetch_assoc()) {
+                return mb_convert_encoding($row[$field], 'UTF-8', mb_detect_encoding($row[$field]));
             } else {
-                while ($row = $result->fetch_assoc()) {
-                    return mb_convert_encoding($row[$field], 'UTF-8', mb_detect_encoding($row[$field]));
-                }
+                error_log("sqlSelect empty result : $sqlquery", 0);
             }
         }
     } else {
@@ -180,26 +170,21 @@ function sqlSelect($table, $field, $where, $orderby = "", $limit = "")
 function sqlSelectRow($table, $fields, $where, $orderby = "")
 {
     if (defined("dbconn")) {
-        if (strlen($table) > 0 && strlen($fields) > 0) {
+        if (!empty($table) && !empty($fields)) {
             $sqlquery = "SELECT $fields FROM `$table`";
-            if (strlen($where) > 0) {
+            if (!empty($where)) {
                 $sqlquery .= " WHERE ($where)";
             }
-            if (strlen($orderby) > 0) {
+            if (!empty($orderby)) {
                 $sqlquery .= " ORDER BY `$orderby`";
             }
             $sqlquery .= " LIMIT 1";
             $result = dbconn->query($sqlquery);
-            if (!$result) {
-                return [];
-            } else {
-                while ($row = $result->fetch_assoc()) {
-                    return $row;
-                }
+            if ($result && $row = $result->fetch_assoc()) {
+                return $row;
             }
-        } else {
-            return [];
         }
+        return [];
     } else {
         http_response(500, ["error" => "Internal Server Error"]);
     }
@@ -208,28 +193,25 @@ function sqlSelectRows($table, $fields, $where, $orderby = "", $limit = "")
 {
     $rows = [];
     if (defined("dbconn")) {
-        if (strlen($table) > 0 && strlen($fields) > 0) {
+        if (!empty($table) && !empty($fields)) {
             $sqlquery = "SELECT $fields FROM `$table`";
-            if (strlen($where) > 0) {
+            if (!empty($where)) {
                 $sqlquery .= " WHERE ($where)";
             }
-            if (strlen($orderby) > 0) {
+            if (!empty($orderby)) {
                 $sqlquery .= " ORDER BY $orderby";
             }
-            if (strlen($limit) > 0) {
+            if (!empty($limit)) {
                 $sqlquery .= " LIMIT $limit";
             }
-            $result = dbconn->query($sqlquery);
-            if (!$result) {
-                return (null);
-            } else {
+            if ($result = dbconn->query($sqlquery)) {
                 while ($row = $result->fetch_assoc()) {
-                    array_push($rows, $row);
+                    $rows[] = $row;
                 }
             }
         }
     }
-    return ($rows);
+    return $rows;
 }
 function sqlSelectPlot($table, $field_x, $field_y, $where = "", $orderby = "", $limit = "", $groupby = "")
 {

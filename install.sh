@@ -32,11 +32,119 @@ CRON_EXISTS_WEEK=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_WEEK")
 CRON_EXISTS_MONTH=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_MONTH") 
 CRON_EXISTS_YEAR=$(crontab -l 2>/dev/null | grep -F "$CRON_JOB_YEAR")
 platform='unknown'
+GITIGNORE='# Ignore the Auto updater
+update.php
+install.sh
+manifest.json
+#Visual Code, AI and its plugins
+.qodo/*
+.vscode/*
+#Ignore the Framework Documentation
+documentation/*
+index.html
+#Ignore the Framework templates
+v1/vhost.conf
+v1/index.php
+v1/htaaccess.conf
+#Configuration Files never to be included
+v1/config.php
+#Ignore the Framework
+v1/deploy.php
+v1/cron/index.html
+v1/cron/day.php
+v1/cron/hour.php
+v1/cron/second.php
+v1/cron/minute.php
+v1/cron/month.php
+v1/cron/week.php
+v1/cron/year.php
+v1/DELETE/index.html
+v1/DELETE/delete.php
+v1/DELETE/events.php
+v1/DELETE/remove_instance.php
+v1/DELETE/universe_delete_node.php
+v1/general/index.html
+v1/general/db.php
+v1/general/manifest.php
+v1/GET/index.html
+v1/GET/count_rows.php
+v1/GET/events.php
+v1/GET/info.php
+v1/GET/select_multi_table.php
+v1/GET/select_plot.php
+v1/GET/select_row.php
+v1/GET/select_rows.php
+v1/GET/select.php
+v1/GET/sum_rows.php
+v1/GET/tables_info.php
+v1/locales/en.json
+v1/locales/index.html
+v1/locales/README.md
+v1/locales/fr.json
+v1/locales/pt.json
+v1/locales/ru.json
+v1/locales/zh.json
+v1/locales/nl.json
+v1/locales/it.json
+v1/locales/de.json
+v1/locales/es.json
+v1/POST/index.html
+v1/POST/insert.php
+v1/POST/events.php
+v1/POST/uploadfile.php
+v1/POST/new_instance.php
+v1/POST/universe_create_node.php
+v1/PUT/index.html
+v1/PUT/update.php
+v1/PUT/events.php
+v1/webhooks/index.html
+v1/webhooks/data
+v1/webhooks/logs
+v1/webhooks/queue
+v1/webhooks/data/*
+v1/webhooks/logs/*
+v1/webhooks/queue/*
+'
 unamestr=$(uname)
 sudo clear
 if [[ "$unamestr" == 'Linux' ]]; then
     platform='linux'
     echo "$platform OS Detected. Installing MicroService for Debian like Distros"
+    if ! command -v php &> /dev/null; then
+        echo "❌ PHP is not installed."
+        echo "Installing PHP 8.3..."
+        sudo apt install -qq -y software-properties-common > /dev/null 2>&1
+        sudo add-apt-repository -y ppa:ondrej/php > /dev/null 2>&1
+        sudo apt update -qq > /dev/null 2>&1
+        sudo apt install -qq -y php > /dev/null 2>&1
+        sudo apt install -qq -y php-cli > /dev/null 2>&1
+        sudo apt install -qq -y php-common > /dev/null 2>&1
+        sudo apt install -qq -y php-json > /dev/null 2>&1
+        sudo apt install -qq -y php-mysql > /dev/null 2>&1
+        sudo apt install -qq -y php-xml > /dev/null 2>&1
+        sudo apt install -qq -y php-mbstring > /dev/null 2>&1
+        sudo apt install -qq -y php-curl > /dev/null 2>&1
+        sudo apt install -qq -y php-zip > /dev/null 2>&1
+        sudo apt install -qq -y php-gd > /dev/null 2>&1
+        sudo apt install -qq -y php-bcmath > /dev/null 2>&1
+        sudo apt install -qq -y php-xmlrpc > /dev/null 2>&1
+        sudo apt install -qq -y php-intl > /dev/null 2>&1
+        sudo apt install -qq -y php-ldap > /dev/null 2>&1
+        sudo apt install -qq -y php-imagick > /dev/null 2>&1
+        sudo apt install -qq -y php-tidy > /dev/null 2>&1
+        sudo apt install -qq -y php-xmlrpc > /dev/null 2>&1
+        sudo apt install -qq -y php-soap > /dev/null 2>&1
+        sudo apt install -qq -y php-redis > /dev/null 2>&1
+        sudo apt install -qq -y php-memcached > /dev/null 2>&1
+        sudo apt install -qq -y php-memcache > /dev/null 2>&1
+        sudo apt install -qq -y php-mongodb > /dev/null 2>&1
+    fi
+    # Check if PHP 8.3 is installed
+    if php -v | grep -q "PHP 8.3"; then
+        echo "✅ PHP 8.3 is installed."
+    else
+        echo "❌ PMSRAPI requieres PHP 8.3, please ensure that your Linux distro supports PHP 8.3 or greater."
+    fi
     echo "⚙️ Installing Dependencies..."
     sudo apt install -qq -y shc  > /dev/null 2>&1
     sudo apt install -qq -y unzip > /dev/null 2>&1
@@ -82,6 +190,8 @@ define(\"ms_http_headers\", [\"Content-Type\" => \"application/json\", \"Access-
 define(\"ms_logserver\", \"${mms_logserver}\");
 "
         echo "$CONFIG_DATA" > $CURRENT_DIR/v1/config.php
+        echo "$GITIGNORE" > $CURRENT_DIR/.gitignore
+        chmod +x $CURRENT_DIR/v1/cron/seconds.sh
         httpport=$(dialog --backtitle "PMSRAPI" --title 'MicroService HTTP' --inputbox 'Enter the port where this service will live' 7 60 "8001"  --output-fd 1)
         httphost=$(dialog --backtitle "PMSRAPI" --title 'MicroService HTTP' --inputbox 'Enter the IP where this service will live' 7 60 "0.0.0.0"  --output-fd 1)
         environtment=$(dialog --menu "PMSRAPI Environment" 20 45 35 dev "Development" test "Test" stage "Staging" prod "Production" --output-fd 1)
@@ -116,6 +226,7 @@ define(\"ms_logserver\", \"${mms_logserver}\");
         \"GET\":[],
         \"DELETE\":[]  
     },
+    \"ms_server_token\":\"${mms_server_token}\",
     \"ms_logserver_token\":\"${TOKEN}\",
     \"ms_logserver_url\":\"${mms_logserver}\",
     \"env\": \"${environtment}\",
@@ -158,20 +269,19 @@ define(\"ms_logserver\", \"${mms_logserver}\");
         sleep 3
         if [ -z "$CRON_EXISTS" ]; then
             # Add the cron job
-            (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+            if dialog --title 'Database' --backtitle "PMSRAPI" --yesno "Is your service connected to MySQL or MariaDB?" 7 60; then
+                (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+                dialog --title 'CRONJOB' --infobox 'Auto Update of the framework has been added to your CRONJOBS' 7 60
+                sleep 3
+            else
+                dialog --title 'CRONJOB' --infobox 'PMSRAPI will never aupdate automatically, bye bye security and patches, you need to run php update.php manually' 7 60
+                sleep 3
+            fi
+           
             dialog --title 'CRONJOB' --infobox 'Auto Update of the framework has been added to your CRONJOBS' 7 60
             sleep 3
         else
             dialog --title 'CRONJOB' --infobox 'It seems you already installed before, and the autoupdate was already activated' 7 60
-            sleep 3
-        fi
-        if [ -z "$CRON_EXISTS_SECOND" ]; then
-            # Add the cron job
-            (crontab -l 2>/dev/null; echo "$CRON_JOB_SECOND") | crontab -
-            dialog --title 'CRONJOB' --infobox 'Secondly CronJob has been added to your CRONJOBS' 7 60
-            sleep 3
-        else
-            dialog --title 'CRONJOB' --infobox 'It seems you already installed seconds execution cron job before, and the autoupdate was already activated' 7 60
             sleep 3
         fi
         if [ -z "$CRON_EXISTS_MINUTE" ]; then

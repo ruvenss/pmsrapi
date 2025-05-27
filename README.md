@@ -21,9 +21,9 @@ apt upgrade -y
 apt install unzip
 mkdir /home/my_microservice
 cd /home/my_microservice
-wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.16.zip -O "pmsrapi.zip"
+wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.17.zip -O "pmsrapi.zip"
 unzip -qq pmsrapi.zip && rm pmsrapi.zip
-mv pmsrapi-0.0.16/* /home/my_microservice
+mv pmsrapi-0.0.17/* /home/my_microservice
 ./install.sh
 ```
 
@@ -37,9 +37,15 @@ Each step will allow you to auto-generate the config file and hidden manifest so
 
 You can edit this file and add your own project data as well.
 
-The way to play along is simple. Do not modify the core files, they will be automatically updated on each release and you'll see the changes in your GIT.
+The way to play along is simple. Do not modify the core files, they will be automatically updated on each release and you'll see the changes in your GIT. A .gitignore file will be automatically deployed the first time you install the framework, allowing your repo to cohexist without touching the framework.
 
 For any issues please contact me. Made with love in Belgium
+
+## Updating
+
+Once the framework is installed sucesfully using install.sh and you've chose to allow automatic updates, your framework will automatically update to the latest version published on GitHub
+
+If you have chose manual updates, then you need to run in the same directory of your project `php update.php` in the terminal.
 
 ## Features
 

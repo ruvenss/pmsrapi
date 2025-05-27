@@ -1,4 +1,5 @@
 <?php
+
 /**
  * info.php
  * Endpoint to get information about the microservice
@@ -29,5 +30,9 @@ function info()
     }
     $ips = exec("hostname -I");
     $ips_array = explode(" ", $ips);
-    http_response(200, ["platform" => $ms_name, "platform_version" => $ms_version, "program" => ms_name, "version" => ms_version, "status" => "running", "description" => ms_description, "author" => ms_author, "author_email" => ms_author_email, "author_website" => ms_author_website, "license" => ms_license, "documentation" => ms_documentation, "last_updated" => ms_last_updated, "github_repo" => ms_github_repo, "local_time" => $local_time, "os" => $os, "ips" => $ips_array]);
+    $db_exist = false;
+    if (isset(ms_secrets['db'])) {
+        $db_exist = true;
+    }
+    http_response(200, ["platform" => $ms_name, "platform_version" => $ms_version, "program" => ms_name, "version" => ms_version, "status" => "running", "description" => ms_description, "author" => ms_author, "author_email" => ms_author_email, "author_website" => ms_author_website, "license" => ms_license, "documentation" => ms_documentation, "last_updated" => ms_last_updated, "github_repo" => ms_github_repo, "local_time" => $local_time, "os" => $os, "ips" => $ips_array, "db" => $db_exist, "environment" => ms_environment, "logserver" => ms_logserver]);
 }

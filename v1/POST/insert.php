@@ -1,4 +1,5 @@
 <?php
+
 /**
  * insert.php
  * Endpoint to insert a new row into a table
@@ -26,14 +27,18 @@ function insert()
     }
     $new_id = sqlInsert(request_data['parameters']['table'], $keys, $values);
     define("new_id", $new_id);
-    if ($new_id > 0) {
+    define("keys", $keys);
+    define("values", $values);
+    define("table", request_data['parameters']['table']);
+    if (new_id > 0) {
         $primary_key = getPrimaryKey(request_data['parameters']['table']);
-        $new_row = sqlSelectRow(request_data['parameters']['table'], "*", "`$primary_key` = $new_id");
+        $new_row = sqlSelectRow(request_data['parameters']['table'], "*", "`$primary_key` = " . new_id);
     } else {
         $new_row = null;
     }
     $last_update = getTableLastUpdateTime(request_data['parameters']['table']);
     include_once getcwd() . '/' . request_method . '/events.php';
+    after_insert();
     http_response(200, ["values" => ["new_id" => new_id], "table_last_update" => $last_update, "new_row" => $new_row]);
 }
 insert();

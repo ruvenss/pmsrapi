@@ -3,7 +3,6 @@ if (!defined('STDIN')) {
     header("HTTP/1.0 404 Not Found", true, 404);
     die();
 }
-
 if (file_exists(getcwd() . '/manifest.json')) {
     define("current_manifest", json_decode(file_get_contents(getcwd() . '/manifest.json'), true));
     define("current_version", current_manifest['version']);
