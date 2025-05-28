@@ -1,4 +1,4 @@
-# PHP Micro Service REST API
+# PHP Micro Service REST API 0.0.18
 
 Yes! Yet another REST API built in PHP.
 
@@ -21,9 +21,9 @@ apt upgrade -y
 apt install unzip
 mkdir /home/my_microservice
 cd /home/my_microservice
-wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.17.zip -O "pmsrapi.zip"
+wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.18.zip -O "pmsrapi.zip"
 unzip -qq pmsrapi.zip && rm pmsrapi.zip
-mv pmsrapi-0.0.17/* /home/my_microservice
+mv pmsrapi-0.0.18/* /home/my_microservice
 ./install.sh
 ```
 
@@ -72,3 +72,45 @@ If you have chose manual updates, then you need to run in the same directory of 
 - Compatible with MariaDB and MySQL
 - Compatible with MongoDB (soon)
 - Compatible SQLite (soon)
+
+## Where does your code go?
+
+Your code should be created inside the following folders:
+
+### API End Points
+
+- `/v1/DELETE/` &rarr; for end points using the DELETE Method (Delete data)
+- `/v1/GET/` &rarr; for end points using the GET Method (Get data)
+- `/v1/POST/` &rarr; for end points using the POST Method (Creation/Insert)
+- `/v1/PUT/` &rarr; for end points using the PUT Method (Updates)
+
+Lets check this Basic *Example*
+
+- `/v1/GET/my_endpoint.php`:
+
+```php
+<?php
+function my_endopoint(){
+    http_response(200, ["message" => "have a nice day"]);
+}
+my_endopoint();
+```
+
+Calling this end point would look like this from other apps:
+
+```bash
+curl --location --request GET 'http://localhost:8000/v1/' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer sample_token' \
+--data '{
+    "function": "my_endpoint"
+}'
+```
+
+### General Functions
+
+- `/v1/general/` &rarr; General functions
+
+### Translations
+
+- `/v1/locales/en_custom.json` &rarr; for custom english translations
