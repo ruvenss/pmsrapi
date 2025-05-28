@@ -29,7 +29,8 @@ if (file_exists(config_path)) {
     http_response(500, ["error" => "Configuration file not found at " . getcwd() . $configPath]);
 }
 define("request_method", $_SERVER['REQUEST_METHOD']);
-if (strpos($_SERVER['CONTENT_TYPE'], 'application/json') === 0) {
+$content_type = $_SERVER['CONTENT_TYPE'] ?? '';
+if (strpos($content_type, 'application/json') === 0) {
     if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
         $authorization = $_SERVER['HTTP_AUTHORIZATION'];
         $token = explode(" ", $authorization);
