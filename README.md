@@ -84,7 +84,7 @@ Your code should be created inside the following folders:
 - `/v1/POST/` &rarr; for end points using the POST Method (Creation/Insert)
 - `/v1/PUT/` &rarr; for end points using the PUT Method (Updates)
 
-Lets check this *Example*
+Lets check this Basic *Example*
 
 - `/v1/GET/my_endpoint.php`:
 
