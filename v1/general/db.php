@@ -28,7 +28,16 @@ if (!defined("dbconn")) {
         exit();
     }
 }
-function sqlInsert($table, $fields = array(), $values = array(), $onduplicate = null)
+/**
+ * Function to insert a record into a table.
+ *
+ * @param string $table The name of the table.
+ * @param array $fields The fields to insert.
+ * @param array $values The values to insert.
+ * @param string|null $onduplicate Optional ON DUPLICATE KEY UPDATE clause.
+ * @return int|null Returns the inserted ID or null on failure.
+ */
+function sqlInsert($table, $fields = array(), $values = array(), ?string $onduplicate = null): ?int
 {
     if (defined("dbconn")) {
         if (strlen($table) > 0 && sizeof($fields) > 0 && sizeof($values) == sizeof($fields)) {
@@ -76,6 +85,13 @@ function sqlInsert($table, $fields = array(), $values = array(), $onduplicate = 
         http_response(500, ["error" => "Internal DB Server Error"]);
     }
 }
+/**
+ * Function to delete records from a table.
+ *
+ * @param string $table The name of the table.
+ * @param string $where The WHERE clause for deletion.
+ * @return bool Returns true on success, false on failure.
+ */
 function sqlDelete($table, $where)
 {
     if (defined("dbconn")) {
@@ -101,6 +117,15 @@ function sqlDelete($table, $where)
         http_response(500, ["error" => "Internal Server Error"]);
     }
 }
+/**
+ * Function to update records in a table.
+ *
+ * @param string $table The name of the table.
+ * @param array $fields The fields to update.
+ * @param array $values The values to set for the fields.
+ * @param string|null $where Optional WHERE clause for the update.
+ * @return bool Returns true on success, false on failure.
+ */
 function sqlUpdate($table, $fields = [], $values = [], $where = null)
 {
     if (defined("dbconn")) {
@@ -142,6 +167,16 @@ function sqlUpdate($table, $fields = [], $values = [], $where = null)
         http_response(500, ["error" => "Internal Server Error"]);
     }
 }
+/**
+ * Function to select a single field from a table.
+ *
+ * @param string $table The name of the table.
+ * @param string $field The field to select.
+ * @param string $where The WHERE clause for selection.
+ * @param string $orderby Optional ORDER BY clause.
+ * @param string $limit Optional LIMIT clause.
+ * @return string|null Returns the selected field value or null on failure.
+ */
 function sqlSelect($table, $field, $where, $orderby = "", $limit = "")
 {
     if (defined("dbconn")) {
@@ -167,6 +202,15 @@ function sqlSelect($table, $field, $where, $orderby = "", $limit = "")
         http_response(500, ["error" => "Internal Server Error"]);
     }
 }
+/**
+ * Function to select a single row from a table.
+ *
+ * @param string $table The name of the table.
+ * @param string $fields The fields to select.
+ * @param string $where The WHERE clause for selection.
+ * @param string $orderby Optional ORDER BY clause.
+ * @return array Returns the selected row as an associative array or an empty array on failure.
+ */
 function sqlSelectRow($table, $fields, $where, $orderby = "")
 {
     if (defined("dbconn")) {
@@ -189,6 +233,16 @@ function sqlSelectRow($table, $fields, $where, $orderby = "")
         http_response(500, ["error" => "Internal Server Error"]);
     }
 }
+/**
+ * Function to select multiple rows from a table.
+ *
+ * @param string $table The name of the table.
+ * @param string $fields The fields to select.
+ * @param string $where The WHERE clause for selection.
+ * @param string $orderby Optional ORDER BY clause.
+ * @param string $limit Optional LIMIT clause.
+ * @return array Returns an array of selected rows as associative arrays or an empty array on failure.
+ */
 function sqlSelectRows($table, $fields, $where, $orderby = "", $limit = "")
 {
     $rows = [];
@@ -213,6 +267,18 @@ function sqlSelectRows($table, $fields, $where, $orderby = "", $limit = "")
     }
     return $rows;
 }
+/**
+ * Function to select data for plotting.
+ *
+ * @param string $table The name of the table.
+ * @param string $field_x The field for the X-axis.
+ * @param string $field_y The field for the Y-axis.
+ * @param string $where Optional WHERE clause.
+ * @param string $orderby Optional ORDER BY clause.
+ * @param string $limit Optional LIMIT clause.
+ * @param string $groupby Optional GROUP BY clause.
+ * @return array Returns an associative array of X and Y values or null on failure.
+ */
 function sqlSelectPlot($table, $field_x, $field_y, $where = "", $orderby = "", $limit = "", $groupby = "")
 {
     $rows = [];
