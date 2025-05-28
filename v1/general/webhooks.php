@@ -102,10 +102,58 @@ function webhooks_get_hook($unique_id, $method): array
     }
     return json_decode(file_get_contents($hook_file), true);
 }
-function sendWebhook($unique_id, $hook, $data, $method)
+function sendWebhook($hook, $data, $method)
 {
     $method = strtoupper($method);
+    $unique_id = $hook['unique_id'] ?? '';
     if (!in_array($method, ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])) {
         throw new Exception("sendWebhook Invalid HTTP method: $method");
     }
+    $ch = curl_init();
+    // Default options (can be overridden by $config)
+    $defaultOptions = [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_TIMEOUT => 30,
+    ];
+
+    // Set URL
+    if (!isset($hook['url'])) {
+        throw new InvalidArgumentException("Missing required 'url' parameter in config array.");
+    }
+    $defaultOptions[CURLOPT_URL] = $hook['url'];
+
+    if ($method === 'POST') {
+        $defaultOptions[CURLOPT_POST] = true;
+    } elseif (in_array($method, ['PUT', 'DELETE', 'PATCH'])) {
+        $defaultOptions[CURLOPT_CUSTOMREQUEST] = $method;
+    }
+
+    // Optional headers
+    if (isset($hook['headers']) && is_array($hook['headers'])) {
+        $defaultOptions[CURLOPT_HTTPHEADER] = $hook['headers'];
+    }
+
+    // Optional body/data
+    if (isset($hook['data'])) {
+        $defaultOptions[CURLOPT_POSTFIELDS] = is_array($hook['data'])
+            ? http_build_query($hook['data'])
+            : $hook['data'];
+    }
+    // Merge user-defined curl options (advanced)
+    if (isset($hook['curlopts']) && is_array($hook['curlopts'])) {
+        $defaultOptions = $hook['curlopts'] + $defaultOptions;
+    }
+    curl_setopt_array($ch, $defaultOptions);
+    $response = curl_exec($ch);
+    $error    = curl_error($ch);
+    $status   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [
+        'success'  => $error === '',
+        'status'   => $status,
+        'error'    => $error ?: null,
+        'response' => $response,
+    ];
+    file_put_contents('webhooks/logs/' . $unique_id . '.log', date('Y-m-d H:i:s') . " - " . $method . " - " . $hook['url'] . " - " . json_encode($data) . " - " . json_encode($response) . "\n", FILE_APPEND);
 }

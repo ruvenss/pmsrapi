@@ -52,6 +52,7 @@
         "v1\/webhooks\/data\/DELETE\/index.html",
         "v1\/webhooks\/data\/POST\/index.html",
         "v1\/webhooks\/data\/PUT\/index.html",
+        "v1\/webhooks\/logs\/index.html",
         "v1\/general\/index.html",
         "v1\/general\/db.php",
         "v1\/general\/manifest.php",

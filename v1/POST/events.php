@@ -20,7 +20,6 @@ function after_insert($new_row)
             $primary_key = getPrimaryKey($table);
             $new_row = sqlSelectRow($table, "*", "`$primary_key` = " . new_id);
             foreach ($webhooks as $hook) {
-
                 if ($hook['table'] == $table) {
                     // Prepare the data to send
                     $data = [
@@ -30,7 +29,7 @@ function after_insert($new_row)
                         'new_id' => new_id
                     ];
                     // Send the data to the webhook URL
-                    sendWebhook($hook['unique_id'], $hook, $data, "POST");
+                    sendWebhook($hook, $data, "POST");
                 }
             }
         }
