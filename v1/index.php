@@ -56,6 +56,9 @@ if (strpos($content_type, 'application/json') === 0) {
                                 $sanitized_function = preg_replace('/[^a-zA-Z0-9_]/', '', request_data['function']);
                                 define("function_path", getcwd() . '/' . request_method . '/' . $sanitized_function . '.php');
                                 if (is_readable(function_path)) {
+                                    if (file_exists(getcwd() . '/general/webhooks.php')) {
+                                        include_once getcwd() . '/general/webhooks.php';
+                                    }
                                     include_once function_path;
                                 } else {
                                     http_response(405, ["error" => "Function not found"]);
