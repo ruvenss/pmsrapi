@@ -29,7 +29,8 @@ if (file_exists(config_path)) {
     http_response(500, ["error" => "Configuration file not found at " . getcwd() . $configPath]);
 }
 define("request_method", $_SERVER['REQUEST_METHOD']);
-if (strpos($_SERVER['CONTENT_TYPE'], 'application/json') === 0) {
+$content_type = $_SERVER['CONTENT_TYPE'] ?? '';
+if (strpos($content_type, 'application/json') === 0) {
     if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
         $authorization = $_SERVER['HTTP_AUTHORIZATION'];
         $token = explode(" ", $authorization);
@@ -55,6 +56,9 @@ if (strpos($_SERVER['CONTENT_TYPE'], 'application/json') === 0) {
                                 $sanitized_function = preg_replace('/[^a-zA-Z0-9_]/', '', request_data['function']);
                                 define("function_path", getcwd() . '/' . request_method . '/' . $sanitized_function . '.php');
                                 if (is_readable(function_path)) {
+                                    if (file_exists(getcwd() . '/general/webhooks.php')) {
+                                        include_once getcwd() . '/general/webhooks.php';
+                                    }
                                     include_once function_path;
                                 } else {
                                     http_response(405, ["error" => "Function not found"]);

@@ -3,6 +3,10 @@ v1/config.php
 .github
 .qodo
 webhooks/data
+webhooks/data/POST/*
+webhooks/data/GET/*
+webhooks/data/PUT/*
+webhooks/data/DELETE/*
 webhooks/logs
 webhooks/queue
 webhooks/queue.lock

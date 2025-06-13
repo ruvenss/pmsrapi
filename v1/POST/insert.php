@@ -38,7 +38,7 @@ function insert()
     }
     $last_update = getTableLastUpdateTime(request_data['parameters']['table']);
     include_once getcwd() . '/' . request_method . '/events.php';
-    after_insert();
+    after_insert($new_row);
     http_response(200, ["values" => ["new_id" => new_id], "table_last_update" => $last_update, "new_row" => $new_row]);
 }
 insert();
