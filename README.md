@@ -1,4 +1,4 @@
-# PHP Micro Service REST API 0.0.18
+# PHP Micro Service REST API 0.0.19
 
 Yes! Yet another REST API built in PHP.
 
@@ -21,9 +21,9 @@ apt upgrade -y
 apt install unzip
 mkdir /home/my_microservice
 cd /home/my_microservice
-wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.18.zip -O "pmsrapi.zip"
+wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.19.zip -O "pmsrapi.zip"
 unzip -qq pmsrapi.zip && rm pmsrapi.zip
-mv pmsrapi-0.0.18/* /home/my_microservice
+mv pmsrapi-0.0.19/* /home/my_microservice
 ./install.sh
 ```
 
@@ -77,7 +77,7 @@ If you have chose manual updates, then you need to run in the same directory of 
 
 Your code should be created inside the following folders:
 
-### API End Points
+### API End Points agreements
 
 - `/v1/DELETE/` &rarr; for end points using the DELETE Method (Delete data)
 - `/v1/GET/` &rarr; for end points using the GET Method (Get data)
@@ -114,3 +114,11 @@ curl --location --request GET 'http://localhost:8000/v1/' \
 ### Translations
 
 - `/v1/locales/en_custom.json` &rarr; for custom english translations
+
+### Documentation
+
+Documentation will be available in its WIKI Pages here: <https://github.com/ruvenss/pmsrapi/wiki>
+
+### Postman Documentation
+
+You can view the public documentation here: [Postman Link](https://documenter.getpostman.com/view/11469303/2sB2qf9dw7)
