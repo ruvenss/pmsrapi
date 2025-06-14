@@ -87,7 +87,6 @@ function webhooks_get_hooks($method): array
     $jsonFiles = [];
     if (file_exists($directory)) {
         $files = scandir($directory);
-
         foreach ($files as $file) {
             if (is_file($directory . DIRECTORY_SEPARATOR . $file) && str_ends_with($file, '.json')) {
                 $unique_id = str_replace(".json", "", $file);
@@ -98,7 +97,6 @@ function webhooks_get_hooks($method): array
                     'url' => $jsonData['url'] ?? '',
                     'created_at' => $jsonData['created_at'] ?? '',
                     'active' => $jsonData['active'] ?? false,
-
                 ];
                 $jsonFiles[] = $hook;
             }

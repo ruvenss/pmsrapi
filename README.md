@@ -118,3 +118,7 @@ curl --location --request GET 'http://localhost:8000/v1/' \
 ### Documentation
 
 Documentation will be available in its WIKI Pages here: <https://github.com/ruvenss/pmsrapi/wiki>
+
+### Postman Documentation
+
+You can view the public documentation here: [Postman Link](https://documenter.getpostman.com/view/11469303/2sB2qf9dw7)
