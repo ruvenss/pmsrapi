@@ -27,7 +27,7 @@ function webhook_add()
         http_response(400, ["error" => "Events must be an array"]);
     }
     // Write the webhook to a file
-    $unique_id = md5($url . $method . json_encode($headers) . json_encode($events) . $user . $pass . $table);
+    $unique_id = md5($url . $method . json_encode($headers) . json_encode($events) . $user . $pass . $table . $authorization);
     $hook_file = 'webhooks/data/' . $method . '/' . $unique_id . '.json';
     $hook = [
         'url' => $url,
@@ -42,10 +42,18 @@ function webhook_add()
         'created_at' => date('Y-m-d H:i:s'),
         'updated_at' => date('Y-m-d H:i:s'),
         'active' => true,
-        'tested' => false
+        'tested' => false,
+        'created_by' => ms_name
     ];
     if (!file_exists('webhooks/data/' . $method)) {
         mkdir('webhooks/data/' . $method, 0777, true);
     }
     file_put_contents($hook_file, json_encode($hook, JSON_PRETTY_PRINT));
+    http_response(200, [
+        "message" => "Webhook added successfully",
+        "unique_id" => $unique_id,
+        "hook_file" => $hook_file,
+        "hook" => $hook
+    ]);
 }
+webhook_add();
