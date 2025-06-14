@@ -82,13 +82,29 @@ function webhooks_get_hooks($method): array
     if (!in_array($method, ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])) {
         throw new Exception("Invalid HTTP method: $method");
     }
-    $hook_files = glob('webhooks/data/' . $method . '*.json');
-    foreach ($hook_files as $hook_file) {
-        $hook = json_decode(file_get_contents($hook_file), true);
-        $hook['unique_id'] = basename($hook_file, '.json');
-        $hooks[] = $hook;
+    error_log("Fetching webhooks for method: $method");
+    $directory = 'webhooks/data/' . $method;
+    $jsonFiles = [];
+    if (file_exists($directory)) {
+        $files = scandir($directory);
+
+        foreach ($files as $file) {
+            if (is_file($directory . DIRECTORY_SEPARATOR . $file) && str_ends_with($file, '.json')) {
+                $unique_id = str_replace(".json", "", $file);
+                //$jsonFiles[] = $unique_id;
+                $jsonData = webhooks_get_hook($unique_id, $method);
+                $hook = [
+                    'unique_id' => $unique_id,
+                    'url' => $jsonData['url'] ?? '',
+                    'created_at' => $jsonData['created_at'] ?? '',
+                    'active' => $jsonData['active'] ?? false,
+
+                ];
+                $jsonFiles[] = $hook;
+            }
+        }
     }
-    return $hooks;
+    return $jsonFiles;
 }
 function webhooks_get_hook($unique_id, $method): array
 {

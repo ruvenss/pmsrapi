@@ -9,6 +9,7 @@ function webhook_add()
     $user = request_data['parameters']['user'] ?? '';
     $pass  = request_data['parameters']['pass'] ?? '';
     $table = request_data['parameters']['table'] ?? '';
+    $data_map = request_data['parameters']['data_map'] ?? [];
     /* Body type can be 
         json, 
         form-data, 
@@ -27,7 +28,7 @@ function webhook_add()
         http_response(400, ["error" => "Events must be an array"]);
     }
     // Write the webhook to a file
-    $unique_id = md5($url . $method . json_encode($headers) . json_encode($events) . $user . $pass . $table . $authorization);
+    $unique_id = md5($url . $method . json_encode($headers) . json_encode($events) . $user . $pass . $table . $authorization . json_encode($data_map) . $body_type);
     $hook_file = 'webhooks/data/' . $method . '/' . $unique_id . '.json';
     $hook = [
         'url' => $url,
@@ -43,10 +44,14 @@ function webhook_add()
         'updated_at' => date('Y-m-d H:i:s'),
         'active' => true,
         'tested' => false,
-        'created_by' => ms_name
+        'created_by' => ms_name,
+        'data_map' => $data_map
     ];
     if (!file_exists('webhooks/data/' . $method)) {
         mkdir('webhooks/data/' . $method, 0777, true);
+    }
+    if (file_exists($hook_file)) {
+        http_response(400, ["error" => "Webhook already exists"]);
     }
     file_put_contents($hook_file, json_encode($hook, JSON_PRETTY_PRINT));
     http_response(200, [
