@@ -77,7 +77,7 @@ If you have chose manual updates, then you need to run in the same directory of 
 
 Your code should be created inside the following folders:
 
-### API End Points
+### API End Points agreements
 
 - `/v1/DELETE/` &rarr; for end points using the DELETE Method (Delete data)
 - `/v1/GET/` &rarr; for end points using the GET Method (Get data)
@@ -114,3 +114,7 @@ curl --location --request GET 'http://localhost:8000/v1/' \
 ### Translations
 
 - `/v1/locales/en_custom.json` &rarr; for custom english translations
+
+### Documentation
+
+Documentation will be available in its WIKI Pages here: <https://github.com/ruvenss/pmsrapi/wiki>
