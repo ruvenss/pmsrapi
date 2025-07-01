@@ -104,14 +104,13 @@ function http_rest($node, $function, $payload, $parameters, $method = "GET")
         for ($i = 0; $i < count(ms_secrets['universe']); $i++) {
             if (ms_secrets['universe'][$i]['name'] == $node) {
                 $protocol = "https";
-                if (ms_secrets['universe'][$i]['ssl'] == false) {
-                    $protocol = "http";
-                }
+                if (ms_secrets['universe'][$i]['ssl'] == false) $protocol = "http";
                 $url = $protocol . "://" . ms_secrets['universe'][$i]['ip'] . ":" . ms_secrets['universe'][$i]['port'] . "/api/v1/";
                 $token = ms_secrets['universe'][$i]['token'];
                 break;
             }
         }
+        if (!isset($url)) return false;
         $data_payload['function'] = $function;
         $data_payload['parameters'] = $parameters;
         $data_payload['payload'] = $payload;
