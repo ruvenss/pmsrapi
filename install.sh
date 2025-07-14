@@ -169,6 +169,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
         mms_github_repo=$(dialog --title 'PMSRAPI' --inputbox 'GitHub Repo' 7 60  --output-fd 1)
         mms_logserver=$(dialog --title 'PMSRAPI' --inputbox 'Logness Server URL' 7 60  --output-fd 1)
         mms_logservertoken=$(dialog --title 'PMSRAPI' --inputbox 'Logness Token' 7 60  --output-fd 1)
+        WORKER_COUNT=$(dialog --title 'PMSRAPI' --inputbox 'How many workers do you want to run?' 7 60 "20" --output-fd 1)
         mms_config_path="${PARENT_DIR}/${mms_name}.json"
         CONFIG_DATA="<?php
 // Define the database connection and private tokens out of your source code
@@ -188,6 +189,7 @@ define(\"ms_github_repo\", \"${mms_github_repo}\");
 define(\"ms_restful_responses\", [\"200\" => \"OK\", \"201\" => \"Created\", \"204\" => \"No Content\", \"400\" => \"Bad Request\", \"401\" => \"Unauthorized\", \"403\" => \"Forbidden\", \"404\" => \"Not Found\", \"405\" => \"Method Not Allowed\", \"409\" => \"Conflict\", \"410\" => \"Gone\", \"500\" => \"Internal Server Error\"]);
 define(\"ms_http_headers\", [\"Content-Type\" => \"application/json\", \"Access-Control-Allow-Origin\" => \"*\", \"Access-Control-Allow-Methods\" => \"GET, POST, PUT, DELETE, OPTIONS\", \"Access-Control-Allow-Headers\" => \"Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With\"]);
 define(\"ms_logserver\", \"${mms_logserver}\");
+define(\"WORKER_COUNT\", \"${WORKER_COUNT}\");
 "
         echo "$CONFIG_DATA" > $CURRENT_DIR/v1/config.php
         echo "$GITIGNORE" > $CURRENT_DIR/.gitignore

@@ -20,6 +20,7 @@ if (PHP_OS_FAMILY !== 'Linux') {
     die();
 }
 define("project_path", dirname(getcwd(), 1));
+
 echo "🪂 Deploying Microservice project in " . project_path . "\n";
 if (!file_exists(project_path . '/v1/config.php')) {
     echo "🟠 Please complete your config file first at " . project_path . "/v1/config.php\n";
