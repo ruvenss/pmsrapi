@@ -49,6 +49,8 @@ Restart=always
 User=root
 Group=root
 WorkingDirectory=' . project_path . '
+StandardOutput=append:/home/' . ms_name . '.log
+StandardError=append:/home/errors_' . ms_name . '.log
 
 [Install]
 WantedBy=multi-user.target';
