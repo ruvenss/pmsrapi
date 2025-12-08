@@ -154,6 +154,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
     sudo rm -f .vscode
     sudo rm -f .git
     sudo rm -f .gitignore
+    sudo rm -f .qodo
     sudo rm -f README.md
     sudo rm -f LICENSE
     if dialog --title 'Deployment directory' --backtitle "PMSRAPI" --yesno "Confirm deployment directory:\n$CURRENT_DIR\n\nConfirm parent directory:\n$PARENT_DIR" 17 60; then
