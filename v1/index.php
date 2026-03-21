@@ -8,8 +8,8 @@
  * IF YOU ADD YOUR CODE HERE IT WILL BE OVERWRITTEN ON THE NEXT UPDATE
  * @category MicroService
  * @package  MicroService_Restful_API
- * @version  1.0.0
- * @since    1.0.0
+ * @version  0.0.24
+ * @since    0.0.24
  * @link     https://github.com/ruvenss/pmsrapi
  * */
 include_once getcwd() . '/config.php';
@@ -26,7 +26,7 @@ if (file_exists(config_path)) {
     }
 } else {
     define("ms_secrets", []);
-    http_response(500, ["error" => "Configuration file not found at " . getcwd() . $configPath]);
+    http_response(500, ["error" => "Configuration file not found at " . getcwd()]);
 }
 define("request_method", $_SERVER['REQUEST_METHOD']);
 $content_type = $_SERVER['CONTENT_TYPE'] ?? '';
@@ -147,7 +147,6 @@ function http_rest($node, $function, $payload, $parameters, $method = "GET")
             ),
         ));
         $response = curl_exec($curl);
-        curl_close($curl);
         if (curl_errno($curl)) {
             return false;
         } elseif (json_validate($response)) {
