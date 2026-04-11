@@ -8,7 +8,7 @@
  */
 function select_rows()
 {
-    $rows = sqlSelectRows(request_data['parameters']['table'], request_data['parameters']['fields'], request_data['parameters']['where'], request_data['parameters']['orderby'], request_data['parameters']['limit'], request_data['parameters']['groupby'] ?? "");
+    $rows = sqlSelectRows(request_data['parameters']['table'], request_data['parameters']['fields'] ?? "*", request_data['parameters']['where'], request_data['parameters']['orderby'] ?? "", request_data['parameters']['limit'] ?? "", request_data['parameters']['groupby'] ?? "");
     if (isset(request_data['payload']['format'])) {
         $format = request_data['payload']['format'];
         switch ($format) {
