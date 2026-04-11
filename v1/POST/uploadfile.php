@@ -1,4 +1,5 @@
 <?php
+
 /**
  * uploadfile.php
  * Endpoint to upload file to a local path using base64 encoding
@@ -19,7 +20,6 @@ function uploadfile()
     }
     if (!file_exists($file_path)) {
         if (mkdir($file_path, 0777, true)) {
-
         } else {
             http_response(500, ["error" => "Error creating local directory"]);
         }
