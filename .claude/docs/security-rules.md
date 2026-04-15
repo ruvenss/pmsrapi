@@ -19,7 +19,7 @@ This is an example of the configuration json file:
 ```
 {
     "db": {
-        "host": "localhost",
+        "host": "p:localhost",
         "port": 3306,
         "name": "example-db",
         "username": "example-user",

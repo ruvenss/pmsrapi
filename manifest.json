@@ -43,6 +43,7 @@
         "v1\/POST\/insert.php",
         "v1\/POST\/universe_insert_node.php",
         "v1\/POST\/uploadfile.php",
+        "v1\/POST\/uploadfile_bin.php",
         "v1\/POST\/events.php",
         "v1\/PUT\/index.html",
         "v1\/PUT\/update.php",
