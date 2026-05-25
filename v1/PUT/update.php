@@ -1,38 +1,49 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * update.php
  * Endpoint to update a record in a table
  * DO NOT MODIFY THIS FILE.
  * @author ruvenss <ruvenss@gmail.com>
  */
-function update()
+function update(): void
 {
-    if (!isset(request_data['parameters']['table']) || !isset(request_data['parameters']['values'])) {
-        http_response(400, ["error" => "Missing table name or values"]);
+    $params = request_data['parameters'] ?? [];
+
+    if (empty($params['table'])) {
+        http_response(400, ["error" => "Bad Request: 'table' parameter is required"]);
     }
-    if (!is_array(request_data['parameters']['values'])) {
-        http_response(400, ["error" => "Values and Columns must be an array"]);
+
+    if (empty($params['values']) || !is_array($params['values'])) {
+        http_response(400, ["error" => "Bad Request: 'values' must be a non-empty associative array"]);
     }
-    if (count(request_data['parameters']['values']) == 0) {
-        http_response(400, ["error" => "Values and Columns must not be empty"]);
-    }
-    $values_keys = request_data['parameters']['values'];
-    $keys = [];
-    $values = [];
-    foreach ($values_keys as $key => $value) {
+
+    $values_map = $params['values'];
+
+    foreach (array_keys($values_map) as $key) {
         if (!is_string($key)) {
-            http_response(400, ["error" => "Values and Columns must be an associative array"]);
-            return;
+            http_response(400, ["error" => "Bad Request: 'values' must be an associative array"]);
         }
-        $keys[] = $key;
-        $values[] = $value;
     }
-    if (sqlUpdate(request_data['parameters']['table'], $keys, $values, request_data['parameters']['where'])) {
-        $affectedRows = dbconn->affected_rows;
-        $last_update = getTableLastUpdateTime(request_data['parameters']['table']);
-        include_once getcwd() . '/' . request_method . '/events.php';
-        http_response(200, ["values" => [], "table_last_update" => $last_update, "affected_rows" => $affectedRows]);
+
+    $table  = $params['table'];
+    $keys   = array_keys($values_map);
+    $values = array_values($values_map);
+    $where  = $params['where'] ?? null;
+
+    if (sqlUpdate($table, $keys, $values, $where)) {
+        $events_path = getcwd() . '/' . request_method . '/events.php';
+        if (file_exists($events_path)) {
+            include_once $events_path;
+        }
+
+        http_response(200, [
+            "values"            => [],
+            "table_last_update" => getTableLastUpdateTime($table),
+            "affected_rows"     => dbconn->affected_rows,
+        ]);
     } else {
         http_response(400, ["error" => "Update failed"]);
     }

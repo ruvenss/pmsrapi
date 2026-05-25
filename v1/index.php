@@ -1,18 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * MicroService Restful API
- * 
+ *
  * This is the main entry point for the MicroService Restful API
  * Do not add your code here, create your code and files in the GET, POST, PUT, DELETE folder
  * IF YOU ADD YOUR CODE HERE IT WILL BE OVERWRITTEN ON THE NEXT UPDATE
  * @category MicroService
  * @package  MicroService_Restful_API
- * @version  0.0.24
- * @since    0.0.24
+ * @version  0.0.26
+ * @since    0.0.26
  * @link     https://github.com/ruvenss/pmsrapi
- * */
-include_once getcwd() . '/config.php';
+ */
+require_once getcwd() . '/config.php';
 if (file_exists(config_path)) {
     $configContent = file_get_contents(config_path);
     $configData = json_decode($configContent, true);
@@ -30,13 +32,13 @@ if (file_exists(config_path)) {
 }
 define("request_method", $_SERVER['REQUEST_METHOD']);
 $content_type = $_SERVER['CONTENT_TYPE'] ?? '';
-if (strpos($content_type, 'application/json') === 0) {
+if (str_starts_with($content_type, 'application/json')) {
     if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
         $authorization = $_SERVER['HTTP_AUTHORIZATION'];
         $token = explode(" ", $authorization);
-        if (count($token) == 2) {
+        if (count($token) === 2) {
             $token = $token[1];
-            if ($token == ms_server_token) {
+            if (hash_equals(ms_server_token, $token)) {
                 // Authorized
                 define("request_body", file_get_contents('php://input'));
                 if (isset(ms_secrets['allowed_functions']) && isset(ms_secrets['allowed_functions'][request_method]) && ms_secrets['allowed_functions'][request_method] != null) {
@@ -101,7 +103,7 @@ function http_response($http_code = 200, $data = null)
     }
     header("MicroService: " . ms_name);
     header("MicroService-Version: " . ms_version);
-    if ($data) {
+    if ($data !== null) {
         $response = ["success" => $success, "data" => $data];
         echo json_encode($response);
     }
@@ -110,53 +112,65 @@ function http_response($http_code = 200, $data = null)
     }
     die();
 }
-function http_rest($node, $function, $payload, $parameters, $method = "GET")
+function http_rest(string $node, string $function, mixed $payload, mixed $parameters, string $method = "GET"): mixed
 {
-    if (isset(ms_secrets['universe'])) {
-        $data_payload = [];
-        for ($i = 0; $i < count(ms_secrets['universe']); $i++) {
-            if (ms_secrets['universe'][$i]['name'] == $node) {
-                $protocol = "https";
-                if (ms_secrets['universe'][$i]['ssl'] == false) {
-                    $protocol = "http";
-                }
-                $url = $protocol . "://" . ms_secrets['universe'][$i]['ip'] . ":" . ms_secrets['universe'][$i]['port'] . "/api/v1/";
-                $token = ms_secrets['universe'][$i]['token'];
-                break;
-            }
-        }
-        $data_payload['function'] = $function;
-        $data_payload['parameters'] = $parameters;
-        $data_payload['payload'] = $payload;
-        $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_POSTFIELDS => json_encode($data_payload),
-            CURLOPT_HTTPHEADER => array(
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $token,
-                'MicroService: ' . ms_name,
-                'MicroService-Version: ' . ms_version
-            ),
-        ));
-        $response = curl_exec($curl);
-        if (curl_errno($curl)) {
-            return false;
-        } elseif (json_validate($response)) {
-            return json_decode($response, true);
-        } else {
-            return $response;
-        }
-    } else {
+    if (!isset(ms_secrets['universe'])) {
         return false;
     }
+
+    $url = null;
+    $token = null;
+
+    foreach (ms_secrets['universe'] as $service) {
+        if ($service['name'] === $node) {
+            $protocol = ($service['ssl'] ?? true) ? "https" : "http";
+            $url = $protocol . "://" . $service['ip'] . ":" . $service['port'] . "/api/v1/";
+            $token = $service['token'];
+            break;
+        }
+    }
+
+    if ($url === null || $token === null) {
+        return false;
+    }
+
+    $data_payload = [
+        'function' => $function,
+        'parameters' => $parameters,
+        'payload' => $payload,
+    ];
+
+    $curl = curl_init();
+    curl_setopt_array($curl, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => $method,
+        CURLOPT_POSTFIELDS => json_encode($data_payload),
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $token,
+            'MicroService: ' . ms_name,
+            'MicroService-Version: ' . ms_version,
+        ],
+    ]);
+
+    $response = curl_exec($curl);
+    $hasError = curl_errno($curl) !== 0;
+
+    if ($hasError) {
+        return false;
+    }
+
+    if (json_validate($response)) {
+        return json_decode($response, true);
+    }
+
+    return $response;
 }
 /**
  * Log an event to the log server
@@ -180,36 +194,32 @@ function log_event($changes, $env = "dev", $action = "updated", $log_type = "tas
         $token = ms_logserver_token;
         $data = ["microservice" => ms_name, "version" => ms_version, "created_at" => date("Y-m-d H:i:s"), "changes" => $changes, "action" => $action, "log_type" => $log_type, "created_by" => $created_by, "log_type_title" => $log_type_title, "log_type_id" => $log_type_id, "log_for" => $log_for, "log_for_id" => $log_for_id, "log_for2" => $log_for2, "log_for_id2" => $log_for_id2, "deleted" => $deleted];
         // There is 2 type of log we can send to the log server or we can save it in the local file
-        if ($logserver == null || $logserver == "") {
+        if ($logserver == null || $logserver == "" && isset(config_path['local_log']['path'])) {
             // Save the log in the local file
             file_put_contents(config_path['local_log']['path'], json_encode($data) . PHP_EOL, FILE_APPEND);
             return true;
         }
         $curl = curl_init();
-        curl_setopt_array($curl, array(
+        curl_setopt_array($curl, [
             CURLOPT_URL => ms_logserver,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
+            CURLOPT_TIMEOUT => 30,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_HTTPHEADER => array(
+            CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'Authorization: Bearer ' . ms_logserver_token
-            ),
-        ));
-        curl_exec($curl);
+                'Authorization: Bearer ' . ms_logserver_token,
+            ],
+        ]);
+        $response = curl_exec($curl);
         if (curl_errno($curl)) {
-            curl_close($curl);
             return false;
-        } else {
-            $response = curl_exec($curl);
-            curl_close($curl);
-            return $response;
         }
+        return $response;
     } else {
         return false;
     }

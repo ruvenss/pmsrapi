@@ -1,22 +1,36 @@
 <?php
-function select_multi_table_rows()
+
+declare(strict_types=1);
+
+/**
+ * select_multi_table_rows.php
+ * Endpoint to select rows from multiple tables and merge the results
+ * DO NOT MODIFY THIS FILE.
+ * @author ruvenss <ruvenss@gmail.com>
+ */
+function select_multi_table_rows(): void
 {
-    $tables = request_data['parameters']['tables'];
-    $fields = request_data['parameters']['fields'];
-    $where = request_data['parameters']['where'];
-    $orderby = request_data['parameters']['orderby'];
-    $limit = request_data['parameters']['limit'];
-    $tablerows = [];
+    $params = request_data['parameters'] ?? [];
+
+    if (empty($params['tables']) || !is_array($params['tables'])) {
+        http_response(400, ["error" => "Bad Request: 'tables' parameter is required and must be an array"]);
+    }
+
+    if (empty($params['fields'])) {
+        http_response(400, ["error" => "Bad Request: 'fields' parameter is required"]);
+    }
+
+    $tables  = $params['tables'];
+    $fields  = $params['fields'];
+    $where   = $params['where']   ?? "";
+    $orderby = $params['orderby'] ?? "";
+    $limit   = $params['limit']   ?? "";
+
     $rows = [];
     foreach ($tables as $table) {
-        $tablerows[$table] = sqlSelectRows($table, $fields, $where, $orderby, $limit);
-        $table_result = $tablerows[$table];
-        if (sizeof($table_result)) {
-            for ($i = 0; $i < sizeof($table_result); $i++) {
-                array_push($rows, $table_result[$i]);
-            }
-        }
+        $rows = array_merge($rows, sqlSelectRows($table, $fields, $where, $orderby, $limit));
     }
+
     http_response(200, ["values" => ["rows" => $rows]]);
 }
 select_multi_table_rows();

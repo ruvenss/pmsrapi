@@ -1,23 +1,39 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * delete.php
  * Endpoint to delete record(s) in a table
  * DO NOT MODIFY THIS FILE.
  * @author ruvenss <ruvenss@gmail.com>
  */
-function delete()
+function delete(): void
 {
-    if (!isset(request_data['parameters']['table']) || !isset(request_data['parameters']['where'])) {
-        http_response(400, ["error" => "Missing table or where"]);
+    $params = request_data['parameters'] ?? [];
+
+    if (empty($params['table'])) {
+        http_response(400, ["error" => "Bad Request: 'table' parameter is required"]);
     }
-    if (!isset(request_data['parameters']['where'])) {
-        http_response(400, ["error" => "Missing where "]);
+
+    if (empty($params['where'])) {
+        http_response(400, ["error" => "Bad Request: 'where' parameter is required"]);
     }
-    if (sqlDelete(request_data['parameters']['table'], request_data['parameters']['where'])) {
-        $affectedRows = dbconn->affected_rows;
-        $last_update = getTableLastUpdateTime(request_data['parameters']['table']);
-        include_once getcwd() . '/' . request_method . '/events.php';
-        http_response(200, ["values" => [], "table_last_update" => $last_update, "affected_rows" => $affectedRows]);
+
+    $table = $params['table'];
+    $where = $params['where'];
+
+    if (sqlDelete($table, $where)) {
+        $events_path = getcwd() . '/' . request_method . '/events.php';
+        if (file_exists($events_path)) {
+            include_once $events_path;
+        }
+
+        http_response(200, [
+            "values"            => [],
+            "table_last_update" => getTableLastUpdateTime($table),
+            "affected_rows"     => dbconn->affected_rows,
+        ]);
     } else {
         http_response(400, ["error" => "Delete failed"]);
     }
