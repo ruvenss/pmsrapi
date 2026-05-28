@@ -124,7 +124,7 @@ function http_rest(string $node, string $function, mixed $payload, mixed $parame
     foreach (ms_secrets['universe'] as $service) {
         if ($service['name'] === $node) {
             $protocol = ($service['ssl'] ?? true) ? "https" : "http";
-            $url = $protocol . "://" . $service['ip'] . ":" . $service['port'] . "/api/v1/";
+            $url = $protocol . "://" . $service['ip'] . ":" . $service['port'] . "/v1/";
             $token = $service['token'];
             break;
         }
