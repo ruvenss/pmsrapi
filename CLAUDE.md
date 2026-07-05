@@ -8,6 +8,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 There is **no build step, no Composer, no test suite, and no application framework**. Everything is procedural PHP using `define()` constants.
 
+> Everything below describes the original **v1** core (in `v1/`). A second,
+> modernized core lives in [v2/](v2/) — real REST routing, a DI container, a
+> hand-rolled PSR-4 autoloader, mysqli **prepared** statements, and Redis
+> (cache, rate-limit, queue, token store). It runs beside v1 and reuses the same
+> secret JSON config. **When working in `v2/`, follow [v2/CLAUDE.md](v2/CLAUDE.md)
+> and the `.claude/rules/`; do not carry v1's idioms into it, and do not
+> "modernize" v1's auto-overwritten core to match v2.**
+
 ## Commands
 
 ```bash

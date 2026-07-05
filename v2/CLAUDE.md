@@ -1,0 +1,100 @@
+# CLAUDE.md — v2
+
+Guidance for Claude Code (and any contributor) working in the `v2/` tree. This
+travels with the repo, so a fresh clone inherits these conventions. Read it
+before editing v2. For v1, see the repo-root `CLAUDE.md`; **v2 is a separate,
+parallel core — do not blend v1's idioms into it.**
+
+## What v2 is
+
+A framework-less-but-**structured** PHP 8.3 microservice core. Same "one
+service = one database" model and the **same secret JSON config** as v1, but
+rebuilt to be modern, secure, and Redis-accelerated. No Composer, no build step:
+a hand-rolled PSR-4 autoloader ([src/Core/Autoloader.php](src/Core/Autoloader.php))
+maps `Pmsrapi\V2\` → `v2/src/`.
+
+## Golden rules
+
+1. **Follow `.claude/rules/` here.** Unlike v1's core (which intentionally
+   violates them), v2 IS the modern code those rules describe: `declare(strict_types=1)`
+   in every file, typed everything, readonly value objects, enums, constructor
+   promotion, custom exceptions, no globals, no `@`, no raw SQL.
+2. **Never concatenate values into SQL.** All values are bound parameters
+   (`$stmt->execute($params)`). All **identifiers** (table/column/order-by) are
+   whitelisted via [`Database\Schema`](src/Database/Schema.php) then backtick-quoted.
+   If you catch yourself interpolating a client string into SQL, stop.
+3. **Constructor injection only.** Resolve dependencies from the
+   [`Container`](src/Core/Container.php); register new services in
+   [bootstrap.php](bootstrap.php). No `global`, no singletons-via-static, no `new`
+   of a service inside another service.
+4. **Redis must degrade, never crash.** Every Redis call site catches
+   `RedisException` and continues (cache→miss, rate-limit→open, queue→logged).
+   Preserve that when adding Redis-backed features.
+5. **One response, returned not `die()`d.** Handlers return a
+   [`Response`](src/Http/Response.php); the front controller sends it once. Do
+   not `echo`/`die()` mid-request (that was v1).
+
+## Request lifecycle
+
+`index.php` → `bootstrap.php` (DI) → `Kernel` builds the pipeline
+**RateLimit → Auth → Router.dispatch** → controller returns `Response`. Any
+`ApiException` is converted to an envelope by the Kernel; unexpected `Throwable`
+is caught at the `index.php` boundary and logged. CORS headers are applied to
+every response.
+
+## Routing
+
+Real REST, not v1's function-name dispatch. Routes live in
+[routes.php](routes.php): system routes are explicit; CRUD routes are generated
+from the `resources` block of the secret config. Templates use `{param}`
+placeholders (`/users/{id}`) matched one segment at a time.
+
+## Adding things — put work in the right place
+
+| Task | Where | Notes |
+|---|---|---|
+| Expose a table over REST | `resources` in the **secret JSON** | No code. This is the security whitelist. |
+| Custom endpoint | bottom of [routes.php](routes.php) | `$router->get('/path/{x}', fn($r,$p) => $container->get(Foo::class)->bar(...))` |
+| New service/helper | new class under `src/`, register in [bootstrap.php](bootstrap.php) | Constructor-injected. |
+| Data access | extend [`Database\Repository`](src/Database/Repository.php) | Keep the bound-params + Schema-whitelist discipline. |
+| Side effect on write | `WebhookDispatcher::emit()` or a service the controller calls | Events are async via the Redis queue. |
+| New error type | subclass [`Exception\ApiException`](src/Exception/ApiException.php) | Carry a status + machine `code`; the envelope renders it. |
+
+The generic [`CrudController`](src/Http/Controllers/CrudController.php) already
+handles list/read/create/update/delete for any configured resource — prefer
+config over a new controller unless you need custom behavior.
+
+## Data layer specifics
+
+- Driver is **mysqli** (kept from v1) in exception mode, but **always prepared**.
+  `Connection` exposes `select/selectOne/scalar/insert/affect` — use those.
+- `Schema` caches `information_schema` lookups in Redis; call `assertTable()` /
+  `assertColumns()` before trusting any client-supplied identifier.
+- `Repository` returns plain associative arrays (rows), not entities — keep it
+  that way for now; the CRUD contract is array-in/array-out.
+
+## Config
+
+- Public: [config.php](config.php) returns an array (identity, headers,
+  `secrets_path`). Edit this for your service.
+- Secret: the JSON at `secrets_path` — the **same file v1 uses**, with v2-only
+  blocks (`redis`, `cache`, `rate_limit`, `resources`, `webhooks`). v1 ignores
+  the extra keys, so never fork the file.
+- Access via `Config::secret('dot.path', default)` and `Config::public(...)`.
+
+## Gotchas
+
+- Stay within **PHP 8.3** features (no property hooks / pipe operator). Verify
+  with `find v2 -name '*.php' -print0 | xargs -0 -n1 php -l`.
+- The `resources` map is the ONLY thing exposing tables — an unlisted table is a
+  404, by design. Adding a resource ≠ writing a migration; the table must exist.
+- `server.php` is dev-only (built-in-server router). Production routing is via
+  `.htaccess` / nginx to `index.php`.
+- Bearer auth accepts the static `ms_server_token` **or** a live token in
+  `TokenStore`. Do not weaken `hash_equals` on the static path.
+
+## Verifying a change
+
+No test suite. Smoke-test by running `php -S 0.0.0.0:8000 v2/server.php` against
+a secret JSON and curling `/v2/health`, `/v2/info`, and a configured resource.
+Watch `local_log.path` for structured error lines.

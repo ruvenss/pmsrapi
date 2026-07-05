@@ -1,0 +1,27 @@
+# Apache rewrite rules for v2 REST routing.
+# Forward every /v2/... request that is not a real file to the front controller.
+# nginx equivalent is documented in v2/README.md.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /v2/
+
+    # Serve existing files/dirs directly (static assets).
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Everything else -> index.php (path preserved in REQUEST_URI).
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Never serve the secret JSON or PHP sources as static text.
+<FilesMatch "\.(json|log)$">
+    Require all denied
+</FilesMatch>
