@@ -1,0 +1,30 @@
+{
+  "role": "hive_mind",
+  "env": "dev",
+  "ms_server_token": "test-token-please-change",
+  "local_log": { "path": "/tmp/pmsrapi.log", "level": "errors" },
+
+  "db":    { "host": "db", "port": 3306, "name": "pmsrapi_test", "username": "app", "password": "app" },
+  "redis": { "host": "redis", "port": 6379, "prefix": "ms:test:" },
+
+  "cache":      { "ttl": 30 },
+  "rate_limit": { "enabled": true, "max": 40, "window": 60 },
+  "debug":      { "enabled": true, "auto_arm_on_error": true, "window": 120, "capture_bodies": true },
+
+  "resources": {
+    "clients": { "table": "clients", "methods": ["GET", "POST", "PUT", "DELETE"], "per_page": 25 }
+  },
+
+  "functions": {
+    "get_client":     { "method": "GET", "path": "/clients/{id}" },
+    "export_clients": { "method": "GET", "path": "/stream/clients", "stream": true }
+  },
+
+  "universe": [
+    { "name": "self", "ip": "127.0.0.1", "port": 8080, "token": "test-token-please-change", "ssl": false }
+  ],
+
+  "function_map": {
+    "demo": { "service": "self", "method": "GET", "path": "/stream/_demo", "stream": true }
+  }
+}
