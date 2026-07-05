@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PMSRAPI v2 — Deploy &amp; Use Guide</title>
+<style>
+  :root{
+    --bg:#ffffff;--fg:#1c2128;--muted:#57606a;--border:#d0d7de;--accent:#0969da;
+    --sidebar:#f6f8fa;--code-bg:#0d1117;--code-fg:#e6edf3;--kbd:#eef1f4;
+    --green:#1a7f37;--red:#cf222e;--amber:#9a6700;--pill:#ddf4ff;--pill-fg:#0969da;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#0d1117;--fg:#e6edf3;--muted:#8b949e;--border:#30363d;--accent:#58a6ff;
+      --sidebar:#161b22;--code-bg:#010409;--kbd:#21262d;--pill:#12283f;--pill-fg:#58a6ff;}
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:grid;grid-template-columns:290px 1fr}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  nav{position:sticky;top:0;height:100vh;overflow:auto;background:var(--sidebar);
+    border-right:1px solid var(--border);padding:22px 18px}
+  nav .brand{font-weight:800;font-size:18px;letter-spacing:.2px}
+  nav .brand small{display:block;color:var(--muted);font-weight:500;font-size:12px;margin-top:2px}
+  nav ul{list-style:none;margin:14px 0 0;padding:0}
+  nav li a{display:block;padding:5px 10px;border-radius:7px;color:var(--fg);font-size:14px}
+  nav li a:hover{background:var(--border);text-decoration:none}
+  nav li a.active{background:var(--pill);color:var(--pill-fg);font-weight:600}
+  nav .grp{margin-top:14px;font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:0 10px}
+  main{padding:34px 46px 120px;max-width:940px}
+  h1{font-size:30px;margin:0 0 6px;line-height:1.2}
+  h2{font-size:23px;margin:44px 0 12px;padding-top:12px;border-top:1px solid var(--border)}
+  h3{font-size:18px;margin:28px 0 8px}
+  h4{font-size:15px;margin:20px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  p,li{color:var(--fg)}
+  .lead{font-size:18px;color:var(--muted)}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    background:var(--kbd);padding:1.5px 6px;border-radius:5px}
+  .code{position:relative;margin:14px 0}
+  .code pre{margin:0;background:var(--code-bg);color:var(--code-fg);border-radius:10px;
+    padding:16px 18px;overflow:auto;font-size:13.5px;line-height:1.55}
+  .code pre code{background:none;padding:0;font-size:inherit;color:inherit}
+  .code .lbl{position:absolute;top:0;left:16px;transform:translateY(-50%);background:var(--accent);
+    color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    padding:2px 8px;border-radius:5px}
+  .code .copy{position:absolute;top:9px;right:9px;background:#21262d;color:#e6edf3;border:1px solid #30363d;
+    border-radius:6px;font-size:12px;padding:4px 9px;cursor:pointer;opacity:.85}
+  .code .copy:hover{opacity:1;border-color:var(--accent)}
+  .note{border:1px solid var(--border);border-left:4px solid var(--accent);background:var(--sidebar);
+    border-radius:8px;padding:12px 16px;margin:16px 0}
+  .note.warn{border-left-color:var(--amber)}
+  .note.tip{border-left-color:var(--green)}
+  .note b{display:block;margin-bottom:2px}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;display:block;overflow:auto}
+  th,td{border:1px solid var(--border);padding:7px 11px;text-align:left;vertical-align:top}
+  th{background:var(--sidebar)}
+  td code,th code{white-space:nowrap}
+  .pill{display:inline-block;background:var(--pill);color:var(--pill-fg);font-size:12px;font-weight:700;
+    padding:1px 8px;border-radius:999px;font-family:ui-monospace,monospace}
+  .m-get{color:var(--green);font-weight:700}.m-post{color:var(--accent);font-weight:700}
+  .m-put{color:var(--amber);font-weight:700}.m-del{color:var(--red);font-weight:700}
+  .steps{counter-reset:s;padding-left:0;list-style:none}
+  .steps>li{counter-increment:s;position:relative;padding:2px 0 14px 40px;margin:0}
+  .steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;
+    background:var(--accent);color:#fff;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700}
+  hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+  @media (max-width:920px){body{grid-template-columns:1fr}nav{display:none}main{padding:24px 18px 80px}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">PMSRAPI v2 <small>Deploy &amp; Use Guide</small></div>
+  <ul>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#prereqs">Prerequisites</a></li>
+    <li><a href="#quickstart">Quick start (2 min)</a></li>
+    <li><a href="#config">Configuration</a></li>
+    <li><a href="#auth">Auth &amp; responses</a></li>
+    <div class="grp">CRUD — every case</div>
+    <li><a href="#crud-resource">Define a resource</a></li>
+    <li><a href="#crud-create">Create</a></li>
+    <li><a href="#crud-read">Read one</a></li>
+    <li><a href="#crud-list">List / filter / sort / page</a></li>
+    <li><a href="#crud-update">Update (PUT / PATCH)</a></li>
+    <li><a href="#crud-delete">Delete</a></li>
+    <li><a href="#crud-stream">Stream / bulk export</a></li>
+    <li><a href="#crud-errors">Error responses</a></li>
+    <div class="grp">Multiple microservices</div>
+    <li><a href="#multi-concepts">Concepts</a></li>
+    <li><a href="#multi-call">Call another service</a></li>
+    <li><a href="#multi-stream">Stream between services</a></li>
+    <li><a href="#multi-hive">The Hive &amp; the map</a></li>
+    <li><a href="#multi-bake">Bake the map (go standalone)</a></li>
+    <div class="grp">Deployment</div>
+    <li><a href="#deploy-single">Single microservice</a></li>
+    <li><a href="#deploy-multi">Multiple microservices</a></li>
+    <div class="grp">Reference</div>
+    <li><a href="#ref-endpoints">Endpoint &amp; config reference</a></li>
+    <li><a href="#ref-trouble">Troubleshooting</a></li>
+  </ul>
+</nav>
+<main>
+
+<h1 id="overview">PMSRAPI v2 — Deploy &amp; Use Guide</h1>
+<p class="lead">A step-by-step, copy-paste guide to running, using, and deploying v2 microservices. Every API example below runs as-is against the bundled test environment.</p>
+
+<div class="note tip">
+  <b>Run the examples live</b>
+  Start the test stack (PHP + MariaDB + Redis, seeded with a <code>clients</code> table) and every <code>curl</code> in this guide works verbatim:
+  <div class="code"><span class="lbl">bash</span><pre><code>cd test-env
+docker compose up --build          # serves http://localhost:8080/v2
+# in another terminal, export the base URL + token used by every example:
+export BASE=http://localhost:8080/v2
+export TOKEN=test-token-please-change</code></pre></div>
+  For your own server, just change <code>BASE</code> to <code>https://your-host/v2</code> and <code>TOKEN</code> to your <code>ms_server_token</code>.
+</div>
+
+<p>PMSRAPI v2 is a framework-less PHP 8.3 microservice core. One instance = one service = one database. It speaks real REST, talks to sibling services over an authenticated NDJSON stream, and uses Redis for caching, rate-limiting, queues and a live debug dashboard.</p>
+
+<h2 id="prereqs">Prerequisites</h2>
+<table>
+<tr><th>Need</th><th>Why / how</th></tr>
+<tr><td><b>PHP 8.3+</b> with <code>mysqli</code>, <code>redis</code> (phpredis), <code>curl</code>, <code>json</code></td><td>The runtime. No Composer, no build step.</td></tr>
+<tr><td><b>MariaDB / MySQL</b></td><td>One database per service (optional — a service with no <code>db</code> block runs fine).</td></tr>
+<tr><td><b>Redis 6+</b></td><td>Cache, rate-limit, queue, debug capture, hive registry. If absent, those features no-op gracefully.</td></tr>
+<tr><td><b>Docker</b> (dev only)</td><td>To run the bundled test environment. Never used for production.</td></tr>
+</table>
+
+<h2 id="quickstart">Quick start (2 minutes)</h2>
+<ol class="steps">
+  <li><b>Start the stack.</b>
+    <div class="code"><span class="lbl">bash</span><pre><code>cd test-env && docker compose up --build</code></pre></div>
+  </li>
+  <li><b>Check it's alive</b> (the <code>/health</code> endpoint is public — no token):
+    <div class="code"><span class="lbl">bash</span><pre><code>curl -s $BASE/health</code></pre></div>
+    <div class="code"><span class="lbl">json</span><pre><code>{ "success": true, "data": { "status": "ok", "database": "up", "redis": "up" } }</code></pre></div>
+  </li>
+  <li><b>Make your first authenticated call:</b>
+    <div class="code"><span class="lbl">bash</span><pre><code>curl -s $BASE/info -H "Authorization: Bearer $TOKEN"</code></pre></div>
+  </li>
+  <li><b>List the seeded clients:</b>
+    <div class="code"><span class="lbl">bash</span><pre><code>curl -s "$BASE/clients" -H "Authorization: Bearer $TOKEN"</code></pre></div>
+  </li>
+</ol>
+
+<h2 id="config">Configuration</h2>
+<p>Config is split in two. The <b>public</b> file is committed; the <b>secret</b> file lives outside the web root and holds credentials.</p>
+
+<h4>Public — <code>v2/config.php</code> (edit for your service)</h4>
+<div class="code"><span class="lbl">php</span><pre><code>&lt;?php
+return [
+    'ms_name'      =&gt; 'clients',
+    'ms_version'   =&gt; '2.0.0',
+    // Absolute path recommended in production. Keep it OUTSIDE the web root.
+    'secrets_path' =&gt; '/etc/pmsrapi/clients.json',
+    'headers'      =&gt; [ 'Access-Control-Allow-Origin' =&gt; '*' /* ... */ ],
+];</code></pre></div>
+
+<h4>Secret — the JSON at <code>secrets_path</code> (never commit, never web-serve)</h4>
+<div class="code"><span class="lbl">json</span><pre><code>{
+  "role": "worker",
+  "env": "prod",
+  "ms_server_token": "CHANGE-ME-long-random-string",
+  "local_log": { "path": "/var/log/clients.log", "level": "errors" },
+
+  "db":    { "host": "127.0.0.1", "port": 3306, "name": "clients",
+             "username": "clients", "password": "secret" },
+  "redis": { "host": "127.0.0.1", "port": 6379, "prefix": "ms:clients:" },
+
+  "cache":      { "ttl": 30 },
+  "rate_limit": { "enabled": true, "max": 120, "window": 60 },
+  "debug":      { "enabled": true, "auto_arm_on_error": true },
+
+  "resources": {
+    "clients": { "table": "clients", "methods": ["GET","POST","PUT","DELETE"], "per_page": 25 }
+  }
+}</code></pre></div>
+<div class="note"><b>Key idea</b> A database table is only reachable over REST if it appears in <code>resources</code>. That map is your access-control whitelist.</div>
+
+<h2 id="auth">Authentication &amp; the response envelope</h2>
+<p>Every request (except <code>GET /health</code>) needs a bearer token and, for bodies, JSON:</p>
+<div class="code"><span class="lbl">bash</span><pre><code>-H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json"</code></pre></div>
+<p>Every response is wrapped:</p>
+<div class="code"><span class="lbl">json</span><pre><code>// success
+{ "success": true, "data": { ... }, "meta": { ... } }
+// failure
+{ "success": false, "error": { "code": "validation_failed", "message": "…", "details": { … } } }</code></pre></div>
+
+<!-- ─────────────── CRUD ─────────────── -->
+<h2 id="crud-resource">CRUD · Define a resource</h2>
+<p>Before the CRUD calls work, the table must exist and be listed under <code>resources</code>. The test env already ships this <code>clients</code> table:</p>
+<div class="code"><span class="lbl">sql</span><pre><code>CREATE TABLE clients (
+  id         INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name       VARCHAR(120) NOT NULL,
+  email      VARCHAR(190) NOT NULL UNIQUE,
+  status     VARCHAR(20)  NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre></div>
+<div class="code"><span class="lbl">json — add to the secret config</span><pre><code>"resources": {
+  "clients": { "table": "clients", "methods": ["GET","POST","PUT","DELETE"], "per_page": 25 }
+}</code></pre></div>
+
+<h2 id="crud-create">CRUD · Create <span class="m-post">POST</span></h2>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s -X POST "$BASE/clients" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{ "name": "Dana Poe", "email": "dana@example.com", "status": "active" }'</code></pre></div>
+<div class="code"><span class="lbl">201 Created</span><pre><code>{ "success": true, "data": { "id": 4, "name": "Dana Poe", "email": "dana@example.com",
+  "status": "active", "created_at": "2026-07-05 14:00:00" } }</code></pre></div>
+<div class="note">Only real table columns are accepted — unknown keys are dropped, and values must be scalar (or <code>null</code>).</div>
+
+<h2 id="crud-read">CRUD · Read one <span class="m-get">GET</span></h2>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s "$BASE/clients/4" -H "Authorization: Bearer $TOKEN"</code></pre></div>
+<div class="code"><span class="lbl">200 OK</span><pre><code>{ "success": true, "data": { "id": 4, "name": "Dana Poe", "email": "dana@example.com", "status": "active" } }</code></pre></div>
+
+<h2 id="crud-list">CRUD · List, filter, sort &amp; paginate <span class="m-get">GET</span></h2>
+<h4>Plain list (paginated)</h4>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s "$BASE/clients" -H "Authorization: Bearer $TOKEN"</code></pre></div>
+<div class="code"><span class="lbl">200 OK</span><pre><code>{ "success": true,
+  "data": [ { "id": 1, "name": "Ann Lee", ... }, ... ],
+  "meta": { "page": 1, "per_page": 25, "total": 3, "total_pages": 1 } }</code></pre></div>
+
+<h4>Filter by any column (equality)</h4>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s "$BASE/clients?status=active" -H "Authorization: Bearer $TOKEN"</code></pre></div>
+
+<h4>Sort — <code>order=column</code> or <code>order=column:desc</code></h4>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s "$BASE/clients?order=created_at:desc" -H "Authorization: Bearer $TOKEN"</code></pre></div>
+
+<h4>Paginate — <code>page</code> &amp; <code>per_page</code> (max 200)</h4>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s "$BASE/clients?page=2&per_page=50" -H "Authorization: Bearer $TOKEN"</code></pre></div>
+
+<h4>Everything at once</h4>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s "$BASE/clients?status=active&order=name&page=1&per_page=10" \
+  -H "Authorization: Bearer $TOKEN"</code></pre></div>
+<table>
+<tr><th>Query param</th><th>Meaning</th></tr>
+<tr><td><code>&lt;column&gt;=value</code></td><td>Equality filter on any real column</td></tr>
+<tr><td><code>order=col</code> / <code>order=col:desc</code></td><td>Sort ascending / descending</td></tr>
+<tr><td><code>page</code>, <code>per_page</code></td><td>Pagination (1-based; <code>per_page</code> capped at 200)</td></tr>
+</table>
+
+<h2 id="crud-update">CRUD · Update <span class="m-put">PUT</span> / <span class="m-put">PATCH</span></h2>
+<p>Both replace the columns you send (partial update). Only supplied columns change.</p>
+<div class="code"><span class="lbl">bash — full/partial via PUT</span><pre><code>curl -s -X PUT "$BASE/clients/4" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{ "status": "inactive" }'</code></pre></div>
+<div class="code"><span class="lbl">bash — same via PATCH</span><pre><code>curl -s -X PATCH "$BASE/clients/4" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{ "name": "Dana P." }'</code></pre></div>
+<div class="code"><span class="lbl">200 OK — returns the updated row</span><pre><code>{ "success": true, "data": { "id": 4, "name": "Dana P.", "status": "inactive", ... } }</code></pre></div>
+
+<h2 id="crud-delete">CRUD · Delete <span class="m-del">DELETE</span></h2>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s -i -X DELETE "$BASE/clients/4" -H "Authorization: Bearer $TOKEN"</code></pre></div>
+<div class="code"><span class="lbl">204 No Content</span><pre><code>HTTP/1.1 204 No Content     # empty body on success; 404 if the id doesn't exist</code></pre></div>
+
+<h2 id="crud-stream">CRUD · Stream / bulk export <span class="m-get">GET</span></h2>
+<p>Stream an entire table as <b>NDJSON</b> (one JSON object per line), paged internally so memory stays flat for millions of rows:</p>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -sN "$BASE/stream/clients" -H "Authorization: Bearer $TOKEN"</code></pre></div>
+<div class="code"><span class="lbl">application/x-ndjson</span><pre><code>{"id":1,"name":"Ann Lee","email":"ann@example.com","status":"active"}
+{"id":2,"name":"Bob Kim","email":"bob@example.com","status":"active"}
+{"id":3,"name":"Cara Ng","email":"cara@example.com","status":"inactive"}</code></pre></div>
+<p>A DB-free demo stream is handy for testing the pipe: <code>curl -sN "$BASE/stream/_demo?count=5" -H "Authorization: Bearer $TOKEN"</code></p>
+
+<h2 id="crud-errors">CRUD · Error responses</h2>
+<table>
+<tr><th>Case</th><th>Request</th><th>Result</th></tr>
+<tr><td>Missing / wrong token</td><td><code>curl $BASE/clients</code> (no header)</td><td><span class="pill">401</span> <code>unauthorized</code></td></tr>
+<tr><td>Unknown id or resource</td><td><code>GET $BASE/clients/999999</code></td><td><span class="pill">404</span> <code>not_found</code></td></tr>
+<tr><td>Empty / non-scalar body</td><td><code>POST $BASE/clients -d '{}'</code></td><td><span class="pill">422</span> <code>validation_failed</code></td></tr>
+<tr><td>Too many requests</td><td>exceed <code>rate_limit.max</code></td><td><span class="pill">429</span> <code>rate_limited</code> + <code>Retry-After</code></td></tr>
+<tr><td>Unknown column filter</td><td><code>?nope=1</code></td><td>ignored (only real columns filter)</td></tr>
+</table>
+<div class="code"><span class="lbl">bash — see a 401</span><pre><code>curl -s "$BASE/clients"                     # no Authorization header</code></pre></div>
+<div class="code"><span class="lbl">json</span><pre><code>{ "success": false, "error": { "code": "unauthorized",
+  "message": "Missing or malformed Authorization: Bearer header" } }</code></pre></div>
+
+<hr>
+
+<!-- ─────────────── MULTI-SERVICE ─────────────── -->
+<h2 id="multi-concepts">Multiple microservices · Concepts</h2>
+<p>Each service owns a set of named <b>functions</b>. A function name must belong to <b>exactly one</b> service — <code>get_client</code> lives in the <i>clients</i> service, and every other service <i>calls</i> it instead of duplicating the logic.</p>
+<table>
+<tr><th>Config key</th><th>Purpose</th></tr>
+<tr><td><code>role</code></td><td><code>worker</code> (normal service) or <code>hive_mind</code> (dev-only coordinator)</td></tr>
+<tr><td><code>functions</code></td><td>The functions THIS service owns → how to invoke each</td></tr>
+<tr><td><code>universe</code></td><td>The sibling nodes it can reach: <code>name/ip/port/token/ssl</code></td></tr>
+<tr><td><code>function_map</code></td><td>name → <code>{ service, method, path, stream }</code> for functions it CALLS (baked from the Hive)</td></tr>
+</table>
+<h4>Example topology: two workers + a dev hive</h4>
+<div class="code"><span class="lbl">json — clients-service secret config</span><pre><code>{
+  "role": "worker",
+  "ms_server_token": "clients-token",
+  "db": { "host": "127.0.0.1", "name": "clients", "username": "clients", "password": "…" },
+  "redis": { "host": "127.0.0.1", "prefix": "ms:clients:" },
+  "resources": { "clients": { "table": "clients" } },
+  "functions": {
+    "get_client":     { "method": "GET", "path": "/clients/{id}" },
+    "export_clients": { "method": "GET", "path": "/stream/clients", "stream": true }
+  }
+}</code></pre></div>
+<div class="code"><span class="lbl">json — billing-service secret config (calls clients)</span><pre><code>{
+  "role": "worker",
+  "ms_server_token": "billing-token",
+  "db": { "host": "127.0.0.1", "name": "billing", "username": "billing", "password": "…" },
+  "redis": { "host": "127.0.0.1", "prefix": "ms:billing:" },
+  "resources": { "invoices": { "table": "invoices" } },
+  "functions": { "get_invoice": { "method": "GET", "path": "/invoices/{id}" } },
+
+  "universe": [
+    { "name": "clients", "ip": "10.0.0.11", "port": 8001, "token": "clients-token", "ssl": false }
+  ],
+  "function_map": {
+    "get_client": { "service": "clients", "method": "GET", "path": "/clients/{id}" }
+  }
+}</code></pre></div>
+
+<h2 id="multi-call">Multiple microservices · Call another service</h2>
+<p>Inside <i>billing</i>, add a custom route that fetches a client from the <i>clients</i> service. Custom routes go at the bottom of <code>v2/routes.php</code> and survive core updates:</p>
+<div class="code"><span class="lbl">php — v2/routes.php</span><pre><code>use Pmsrapi\V2\Cluster\ServiceClient;
+
+// GET /v2/billing-report/42  → pulls client 42 from the clients service
+$router-&gt;get('/billing-report/{id}', static fn(Request $r, array $p): Response =&gt;
+    Response::ok(
+        $container-&gt;get(ServiceClient::class)-&gt;call('get_client', ['id' =&gt; $p['id']])
+    ));</code></pre></div>
+<p><code>ServiceClient::call()</code> resolves <code>get_client</code> from the local <code>function_map</code>, finds the <code>clients</code> node in <code>universe</code>, authenticates with that node's token, and returns its <code>data</code>. No Hive is contacted at runtime.</p>
+<div class="code"><span class="lbl">bash — from a client of billing</span><pre><code>curl -s "https://billing.example.com/v2/billing-report/42" \
+  -H "Authorization: Bearer $BILLING_TOKEN"</code></pre></div>
+
+<h2 id="multi-stream">Multiple microservices · Stream between services</h2>
+<p>For bulk data, stream instead of buffering. <code>ServiceClient::stream()</code> yields records lazily (constant memory) as they arrive over NDJSON:</p>
+<div class="code"><span class="lbl">php — inside any endpoint / cron / worker</span><pre><code>$client = $container-&gt;get(ServiceClient::class);
+
+foreach ($client-&gt;stream('export_clients', ['status' =&gt; 'active']) as $row) {
+    // process one client at a time — the whole table never sits in memory
+    reindex($row);
+}</code></pre></div>
+
+<h2 id="multi-hive">Multiple microservices · The Hive &amp; the map</h2>
+<div class="note warn"><b>Development only</b> The Hive is a coordinator you run in dev. Workers never need it at runtime. Set <code>"role": "hive_mind"</code> and give it every worker in its <code>universe</code>.</div>
+<p>Each worker publishes what it owns:</p>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s "https://clients.example.com/v2/capabilities" -H "Authorization: Bearer $CLIENTS_TOKEN"</code></pre></div>
+<p>The Hive collects them, builds the global map, and — crucially — flags any function claimed by two services:</p>
+<div class="code"><span class="lbl">bash — on the hive</span><pre><code>curl -s -X POST "$HIVE/v2/hive/refresh" -H "Authorization: Bearer $HIVE_TOKEN"   # poll every worker
+curl -s "$HIVE/v2/hive/map"         -H "Authorization: Bearer $HIVE_TOKEN"
+curl -s "$HIVE/v2/hive/collisions"  -H "Authorization: Bearer $HIVE_TOKEN"</code></pre></div>
+<div class="code"><span class="lbl">json — a collision (two services own get_client → FIX IT)</span><pre><code>{ "success": true, "data": { "collisions": [
+  { "function": "get_client", "owners": ["clients", "billing"] }
+] } }</code></pre></div>
+<div class="note tip"><b>See it graphically</b> Open <code>https://your-hive/v2/hive</code> in a browser for a VueFlow graph of every service and its functions, with duplicates highlighted in red.</div>
+
+<h2 id="multi-bake">Multiple microservices · Bake the map (go standalone)</h2>
+<p>In development, a worker pulls its map from the Hive and writes it into its own secret config. After that it runs forever with no Hive:</p>
+<div class="code"><span class="lbl">bash — on the worker, pointed at the hive</span><pre><code># add a "hive": { "ip","port","token","ssl" } block (or a universe node named "hive"), then:
+php v2/hive-sync.php
+# → bakes function_map + universe into the secret config. Refuses to run when env = prod.</code></pre></div>
+
+<hr>
+
+<!-- ─────────────── DEPLOY SINGLE ─────────────── -->
+<h2 id="deploy-single">Deploy a single microservice (production)</h2>
+<p>Target: Ubuntu 24.04. We deploy a service called <b>clients</b> on <code>127.0.0.1:8001</code> behind nginx + TLS.</p>
+<ol class="steps">
+  <li><b>Install the runtime.</b>
+    <div class="code"><span class="lbl">bash (root)</span><pre><code>add-apt-repository -y ppa:ondrej/php && apt update
+apt install -y php8.3-cli php8.3-mysql php8.3-curl php8.3-redis php8.3-mbstring \
+               mariadb-server redis-server nginx</code></pre></div>
+  </li>
+  <li><b>Get the code.</b>
+    <div class="code"><span class="lbl">bash</span><pre><code>git clone https://github.com/ruvenss/pmsrapi.git /srv/clients
+chown -R www-data:www-data /srv/clients      # app lives at /srv/clients/v2</code></pre></div>
+  </li>
+  <li><b>Create the database + table.</b>
+    <div class="code"><span class="lbl">bash</span><pre><code>mysql -e "CREATE DATABASE clients CHARACTER SET utf8mb4;
+CREATE USER 'clients'@'localhost' IDENTIFIED BY 'secret';
+GRANT ALL ON clients.* TO 'clients'@'localhost';"
+mysql clients -e "CREATE TABLE clients (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, name VARCHAR(120) NOT NULL,
+  email VARCHAR(190) NOT NULL UNIQUE, status VARCHAR(20) NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);"</code></pre></div>
+  </li>
+  <li><b>Write the secret config</b> outside the web root, locked down.
+    <div class="code"><span class="lbl">bash</span><pre><code>mkdir -p /etc/pmsrapi
+cat &gt; /etc/pmsrapi/clients.json &lt;&lt;'JSON'
+{
+  "role": "worker", "env": "prod",
+  "ms_server_token": "REPLACE-with-64-random-chars",
+  "local_log": { "path": "/var/log/clients.log", "level": "errors" },
+  "db":    { "host": "127.0.0.1", "port": 3306, "name": "clients",
+             "username": "clients", "password": "secret" },
+  "redis": { "host": "127.0.0.1", "port": 6379, "prefix": "ms:clients:" },
+  "rate_limit": { "enabled": true, "max": 120, "window": 60 },
+  "resources": { "clients": { "table": "clients", "methods": ["GET","POST","PUT","DELETE"] } }
+}
+JSON
+chown www-data:www-data /etc/pmsrapi/clients.json && chmod 600 /etc/pmsrapi/clients.json</code></pre></div>
+  </li>
+  <li><b>Point the public config at it.</b> Edit <code>/srv/clients/v2/config.php</code>:
+    <div class="code"><span class="lbl">php</span><pre><code>'ms_name'      =&gt; 'clients',
+'secrets_path' =&gt; '/etc/pmsrapi/clients.json',   // absolute</code></pre></div>
+  </li>
+  <li><b>Create the systemd service</b> (the HTTP server) and the webhook worker.
+    <div class="code"><span class="lbl">bash — /etc/systemd/system/clients.service</span><pre><code>cat &gt; /etc/systemd/system/clients.service &lt;&lt;'UNIT'
+[Unit]
+Description=clients microservice (pmsrapi v2)
+After=network.target mariadb.service redis-server.service
+
+[Service]
+Environment=PHP_CLI_SERVER_WORKERS=8
+ExecStart=/usr/bin/php -S 127.0.0.1:8001 /srv/clients/v2/server.php
+WorkingDirectory=/srv/clients
+User=www-data
+Group=www-data
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+UNIT</code></pre></div>
+    <div class="code"><span class="lbl">bash — /etc/systemd/system/clients-worker.service (webhook/queue)</span><pre><code>cat &gt; /etc/systemd/system/clients-worker.service &lt;&lt;'UNIT'
+[Unit]
+Description=clients webhook worker
+After=redis-server.service
+
+[Service]
+ExecStart=/usr/bin/php /srv/clients/v2/worker.php
+WorkingDirectory=/srv/clients
+User=www-data
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+UNIT</code></pre></div>
+  </li>
+  <li><b>Start everything.</b>
+    <div class="code"><span class="lbl">bash</span><pre><code>systemctl daemon-reload
+systemctl enable --now clients.service clients-worker.service
+systemctl status clients.service --no-pager</code></pre></div>
+  </li>
+  <li><b>Expose it with nginx + TLS.</b>
+    <div class="code"><span class="lbl">bash — /etc/nginx/sites-available/clients</span><pre><code>cat &gt; /etc/nginx/sites-available/clients &lt;&lt;'NGINX'
+server {
+    listen 80;
+    server_name clients.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_buffering off;                 # let NDJSON stream through
+    }
+    # never serve the secret json or logs
+    location ~* \.(json|log)$ { deny all; }
+}
+NGINX
+ln -s /etc/nginx/sites-available/clients /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+certbot --nginx -d clients.example.com          # adds HTTPS</code></pre></div>
+  </li>
+  <li><b>Verify.</b>
+    <div class="code"><span class="lbl">bash</span><pre><code>curl -s https://clients.example.com/v2/health
+curl -s https://clients.example.com/v2/clients \
+  -H "Authorization: Bearer REPLACE-with-64-random-chars"</code></pre></div>
+  </li>
+</ol>
+<div class="note"><b>Hardening</b> Keep the code tree read-only and all writable state (cache, queue, logs) in Redis or <code>/var/log</code> — never inside <code>/srv/clients</code>. Because connections are persistent, size MariaDB <code>max_connections</code> for <code>workers × instances</code>.</div>
+
+<!-- ─────────────── DEPLOY MULTI ─────────────── -->
+<h2 id="deploy-multi">Deploy multiple microservices</h2>
+<p>Deploy each service exactly like the single case, but on its own port, directory, database and secret file. Then wire them together.</p>
+
+<h4>1. One unit per service, distinct ports</h4>
+<table>
+<tr><th>Service</th><th>Dir</th><th>Port</th><th>Secret</th><th>Public URL</th></tr>
+<tr><td>clients</td><td><code>/srv/clients</code></td><td>8001</td><td><code>/etc/pmsrapi/clients.json</code></td><td>clients.example.com</td></tr>
+<tr><td>billing</td><td><code>/srv/billing</code></td><td>8002</td><td><code>/etc/pmsrapi/billing.json</code></td><td>billing.example.com</td></tr>
+</table>
+<p>Repeat the single-service steps for <code>billing</code> with <code>8002</code>, its own DB, and a <code>billing.service</code>/<code>billing-worker.service</code> pair.</p>
+
+<h4>2. Route each with its own nginx server block</h4>
+<div class="code"><span class="lbl">nginx</span><pre><code>server { server_name clients.example.com; location / { proxy_pass http://127.0.0.1:8001; proxy_buffering off; } }
+server { server_name billing.example.com; location / { proxy_pass http://127.0.0.1:8002; proxy_buffering off; } }</code></pre></div>
+<p>Prefer subdomains (above). If you must share one host, route by path prefix and strip it:</p>
+<div class="code"><span class="lbl">nginx — path-based</span><pre><code>location /clients/ { rewrite ^/clients/(.*) /$1 break; proxy_pass http://127.0.0.1:8001; }
+location /billing/ { rewrite ^/billing/(.*) /$1 break; proxy_pass http://127.0.0.1:8002; }</code></pre></div>
+
+<h4>3. Wire the universe</h4>
+<p>In each service that calls another, list the sibling in <code>universe</code> and add the <code>function_map</code> entry (see <a href="#multi-concepts">Concepts</a>). Do it by hand, or generate it with a dev Hive and <code>php v2/hive-sync.php</code> (bakes it into the secret file for you).</p>
+
+<h4>4. (Optional) One-box dev stack with Compose</h4>
+<p>To run several services + MariaDB + Redis together locally, mirror <code>test-env/docker-compose.yml</code>: one <code>app</code>-style service per microservice on its own port, sharing the <code>db</code> and <code>redis</code> services. That stack is <b>dev/test only</b> — production uses the systemd + nginx recipe above.</p>
+
+<hr>
+
+<!-- ─────────────── REFERENCE ─────────────── -->
+<h2 id="ref-endpoints">Reference · Endpoints</h2>
+<table>
+<tr><th>Method &amp; path</th><th>Purpose</th><th>Auth</th></tr>
+<tr><td><code>GET /v2/health</code></td><td>Liveness + DB/Redis probe</td><td>public</td></tr>
+<tr><td><code>GET /v2/info</code></td><td>Service metadata + connection state</td><td>token</td></tr>
+<tr><td><code>GET /v2/{resource}</code></td><td>List (filter / sort / paginate)</td><td>token</td></tr>
+<tr><td><code>GET /v2/{resource}/{id}</code></td><td>Read one</td><td>token</td></tr>
+<tr><td><code>POST /v2/{resource}</code></td><td>Create</td><td>token</td></tr>
+<tr><td><code>PUT|PATCH /v2/{resource}/{id}</code></td><td>Update</td><td>token</td></tr>
+<tr><td><code>DELETE /v2/{resource}/{id}</code></td><td>Delete</td><td>token</td></tr>
+<tr><td><code>GET /v2/stream/{resource}</code></td><td>NDJSON bulk export</td><td>token</td></tr>
+<tr><td><code>GET /v2/capabilities</code></td><td>This service's function manifest</td><td>token</td></tr>
+<tr><td><code>GET /v2/_debug</code></td><td>Live debug dashboard (when <code>debug.enabled</code>)</td><td>shell public</td></tr>
+<tr><td><code>GET /v2/hive</code></td><td>VueFlow service map (when <code>role=hive_mind</code>)</td><td>shell public</td></tr>
+</table>
+
+<h2 id="ref-trouble">Reference · Troubleshooting</h2>
+<table>
+<tr><th>Symptom</th><th>Fix</th></tr>
+<tr><td><span class="pill">500</span> <code>config_error</code></td><td><code>secrets_path</code> is wrong or the JSON is malformed. Check the path in <code>v2/config.php</code> and <code>php -r "json_decode(file_get_contents('…'));"</code>.</td></tr>
+<tr><td><span class="pill">401</span> on every call</td><td>Token mismatch — the <code>Authorization: Bearer</code> value must equal <code>ms_server_token</code>.</td></tr>
+<tr><td><span class="pill">404</span> on a real table</td><td>The table isn't in <code>resources</code>. Add it, then retry (no restart needed — config is read per request).</td></tr>
+<tr><td><code>database: "down"</code> in <code>/health</code></td><td>DB unreachable/creds wrong. <code>GET /v2/info</code> shows <code>connected: false</code>. Check the <code>db</code> block.</td></tr>
+<tr><td>Streaming buffered / delayed</td><td>Set <code>proxy_buffering off;</code> in nginx (already shown above).</td></tr>
+<tr><td>Nothing captured in <code>/_debug</code></td><td>Needs Redis + <code>debug.enabled</code>. Capture only starts after a 5xx (auto-arm) or a manual <b>Arm</b>.</td></tr>
+</table>
+
+<p style="margin-top:40px;color:var(--muted);font-size:14px">PMSRAPI v2 · generated guide · see also <code>v2/README.md</code> and <code>v2/CLAUDE.md</code>.</p>
+
+</main>
+<script>
+  // Copy buttons
+  document.querySelectorAll('.code').forEach(function(block){
+    var btn = document.createElement('button');
+    btn.className = 'copy'; btn.type = 'button'; btn.textContent = 'Copy';
+    btn.addEventListener('click', function(){
+      var text = block.querySelector('code').innerText;
+      navigator.clipboard.writeText(text).then(function(){
+        btn.textContent = 'Copied!'; setTimeout(function(){ btn.textContent = 'Copy'; }, 1200);
+      });
+    });
+    block.appendChild(btn);
+  });
+  // Active section highlight
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav a[href^="#"]'));
+  var map = {}; links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        links.forEach(function(a){ a.classList.remove('active'); });
+        if(map[e.target.id]) map[e.target.id].classList.add('active');
+      }
+    });
+  }, { rootMargin: '-10% 0px -80% 0px' });
+  document.querySelectorAll('main [id]').forEach(function(el){ obs.observe(el); });
+</script>
+</body>
+</html>

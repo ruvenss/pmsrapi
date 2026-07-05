@@ -18,6 +18,11 @@ v1 — but a modern, secure, Redis-accelerated internal design.
 
 > v2 lives beside v1 — it does not replace or modify it. Run whichever you mount.
 
+📖 **Step-by-step deploy &amp; use guide** (HTML, copy-paste examples for every CRUD case,
+multi-service setups, and single/multi deployment): open
+[`v2/docs/index.html`](docs/index.html) in a browser. Its examples run as-is against
+the [`test-env/`](../test-env/) stack.
+
 ---
 
 ## Requirements
