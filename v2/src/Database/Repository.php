@@ -18,10 +18,80 @@ use Pmsrapi\V2\Exception\ValidationException;
  */
 final class Repository
 {
+    private readonly AggregateQuery $aggregateBuilder;
+
     public function __construct(
         private readonly Connection $connection,
         private readonly Schema $schema,
-    ) {}
+    ) {
+        $this->aggregateBuilder = new AggregateQuery($schema);
+    }
+
+    /**
+     * Run a structured advanced SELECT (GROUP BY, aggregates, GROUP_CONCAT,
+     * CONCAT, HAVING, DISTINCT). Identifiers are whitelisted, values bound.
+     *
+     * @param array<string, mixed> $spec see AggregateQuery
+     * @return list<array<string, mixed>>
+     */
+    public function aggregate(string $table, array $spec): array
+    {
+        [$sql, $params] = $this->aggregateBuilder->build($table, $spec);
+        return $this->connection->select($sql, $params);
+    }
+
+    /**
+     * Insert, or update the existing row on a duplicate key
+     * ("IF EXISTS THEN UPDATE") via INSERT … ON DUPLICATE KEY UPDATE.
+     *
+     * @param array<string, scalar|null> $data          full row to insert
+     * @param list<string>|null          $updateColumns columns to overwrite on
+     *                                                   conflict (default: all
+     *                                                   provided columns except PK)
+     * @return array{action: string, affected: int, id: int|string|null, record: array<string, mixed>|null}
+     */
+    public function upsert(string $table, array $data, ?array $updateColumns = null): array
+    {
+        $this->schema->assertTable($table);
+        $data = $this->filterKnownColumns($table, $data);
+        if ($data === []) {
+            throw new ValidationException(['values' => 'No valid columns to upsert']);
+        }
+
+        $pk = $this->schema->primaryKey($table);
+        $columns = array_keys($data);
+
+        $toUpdate = $updateColumns !== null
+            ? array_values(array_intersect($updateColumns, $columns))
+            : array_values(array_diff($columns, [$pk]));
+        $this->schema->assertColumns($table, ...$toUpdate);
+
+        $assignments = array_map(
+            fn(string $c): string => $this->schema->quote($c) . ' = VALUES(' . $this->schema->quote($c) . ')',
+            $toUpdate,
+        );
+        // Make insert_id return the existing row's id on update too.
+        $assignments[] = $this->schema->quote($pk) . ' = LAST_INSERT_ID(' . $this->schema->quote($pk) . ')';
+
+        $sql = 'INSERT INTO ' . $this->schema->quote($table)
+            . ' (' . implode(', ', array_map($this->schema->quote(...), $columns)) . ')'
+            . ' VALUES (' . implode(', ', array_fill(0, count($data), '?')) . ')'
+            . ' ON DUPLICATE KEY UPDATE ' . implode(', ', $assignments);
+
+        $res = $this->connection->modify($sql, array_values($data));
+
+        // affected_rows: 1 = inserted, 2 = updated, 0 = matched but unchanged.
+        $action = match (true) {
+            $res['affected'] === 1 => 'inserted',
+            $res['affected'] >= 2 => 'updated',
+            default => 'unchanged',
+        };
+
+        $id = $res['insert_id'] > 0 ? $res['insert_id'] : ($data[$pk] ?? null);
+        $record = $id !== null ? $this->selectRow($table, [$pk => $id]) : null;
+
+        return ['action' => $action, 'affected' => $res['affected'], 'id' => $id, 'record' => $record];
+    }
 
     /**
      * @param array<string, scalar|null> $filters column => value equality filters

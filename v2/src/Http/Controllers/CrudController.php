@@ -113,6 +113,60 @@ final class CrudController
     }
 
     /**
+     * Advanced read: GROUP BY / aggregates / GROUP_CONCAT / CONCAT / HAVING.
+     * The structured spec is the request body (see AggregateQuery). Cached like
+     * any read and invalidated by writes.
+     */
+    public function query(ResourceDefinition $def, Request $request): Response
+    {
+        if ($request->body === []) {
+            throw new ValidationException(['body' => 'A query spec with a "select" array is required']);
+        }
+        $spec = $request->body;
+
+        $rows = $this->cache->remember(
+            $def->table,
+            ['aggregate', $spec],
+            fn(): array => $this->repository->aggregate($def->table, $spec),
+            $def->cacheTtl,
+        );
+
+        return Response::ok($rows);
+    }
+
+    /**
+     * Upsert — insert, or update the existing row on a duplicate key
+     * ("IF EXISTS THEN UPDATE"). Body: { "values": {...}, "update": [cols?] }.
+     * 201 when a row was inserted, 200 when updated/unchanged.
+     */
+    public function upsert(ResourceDefinition $def, Request $request): Response
+    {
+        $values = $request->body['values'] ?? null;
+        if (!is_array($values) || $values === []) {
+            throw new ValidationException(['values' => 'A non-empty "values" object is required']);
+        }
+        foreach ($values as $key => $value) {
+            if ($value !== null && !is_scalar($value)) {
+                throw new ValidationException([(string) $key => 'Value must be a scalar or null']);
+            }
+        }
+        $updateColumns = isset($request->body['update']) && is_array($request->body['update'])
+            ? array_map(strval(...), $request->body['update'])
+            : null;
+
+        /** @var array<string, scalar|null> $values */
+        $result = $this->repository->upsert($def->table, $values, $updateColumns);
+        $this->cache->invalidate($def->table);
+        $this->webhooks->emit("{$def->name}.upserted", ['id' => $result['id'], 'action' => $result['action']]);
+
+        $payload = ['action' => $result['action'], 'id' => $result['id'], 'record' => $result['record']];
+
+        return $result['action'] === 'inserted'
+            ? Response::created($payload)
+            : Response::ok($payload);
+    }
+
+    /**
      * Equality filters from the query string — only keys that are real columns.
      *
      * @return array<string, string>

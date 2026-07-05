@@ -45,11 +45,17 @@ foreach ($config->resources() as $name => $resourceConfig) {
             => $container->get(CrudController::class)->index($def, $r));
         $router->get("/{$def->name}/{id}", static fn(Request $r, array $p): Response
             => $container->get(CrudController::class)->show($def, $r, $p['id']));
+        // Advanced read (GROUP BY / aggregates / GROUP_CONCAT / CONCAT / HAVING).
+        $router->post("/{$def->name}/query", static fn(Request $r, array $p): Response
+            => $container->get(CrudController::class)->query($def, $r));
     }
 
     if ($def->allows(HttpMethod::POST)) {
         $router->post("/{$def->name}", static fn(Request $r, array $p): Response
             => $container->get(CrudController::class)->store($def, $r));
+        // Upsert — insert or "IF EXISTS THEN UPDATE".
+        $router->post("/{$def->name}/upsert", static fn(Request $r, array $p): Response
+            => $container->get(CrudController::class)->upsert($def, $r));
     }
 
     if ($def->allows(HttpMethod::PUT)) {

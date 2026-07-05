@@ -171,6 +171,34 @@ final class Connection
     }
 
     /**
+     * Run a write and return BOTH the affected-row count and the insert id.
+     * Used by upsert (INSERT … ON DUPLICATE KEY UPDATE), where affected_rows
+     * distinguishes insert (1) from update (2) and the id comes back via the
+     * LAST_INSERT_ID() trick.
+     *
+     * @param list<scalar|null> $params
+     * @return array{affected: int, insert_id: int}
+     */
+    public function modify(string $sql, array $params = []): array
+    {
+        $start = microtime(true);
+        try {
+            $conn = $this->connection();
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            $result = ['affected' => (int) $stmt->affected_rows, 'insert_id' => (int) $conn->insert_id];
+            $stmt->close();
+
+            $this->recorder?->recordQuery($sql, $params, (microtime(true) - $start) * 1000, $result['affected']);
+
+            return $result;
+        } catch (mysqli_sql_exception $e) {
+            $this->recorder?->recordQuery($sql, $params, (microtime(true) - $start) * 1000, -1);
+            throw new DatabaseException('Upsert failed', $e);
+        }
+    }
+
+    /**
      * @param list<scalar|null> $params
      */
     private function run(string $sql, array $params, bool $returnInsertId): int
