@@ -17,6 +17,9 @@ declare(strict_types=1);
 use Pmsrapi\V2\Cache\QueryCache;
 use Pmsrapi\V2\Cache\RateLimiter;
 use Pmsrapi\V2\Cache\RedisClient;
+use Pmsrapi\V2\Cluster\Capabilities;
+use Pmsrapi\V2\Cluster\HiveRegistry;
+use Pmsrapi\V2\Cluster\ServiceClient;
 use Pmsrapi\V2\Core\Autoloader;
 use Pmsrapi\V2\Core\Config;
 use Pmsrapi\V2\Core\Container;
@@ -25,8 +28,11 @@ use Pmsrapi\V2\Database\Repository;
 use Pmsrapi\V2\Database\Schema;
 use Pmsrapi\V2\Debug\DebugRecorder;
 use Pmsrapi\V2\Debug\Redactor;
+use Pmsrapi\V2\Http\Controllers\CapabilitiesController;
 use Pmsrapi\V2\Http\Controllers\CrudController;
 use Pmsrapi\V2\Http\Controllers\DebugController;
+use Pmsrapi\V2\Http\Controllers\HiveController;
+use Pmsrapi\V2\Http\Controllers\StreamController;
 use Pmsrapi\V2\Http\Controllers\SystemController;
 use Pmsrapi\V2\Http\Middleware\AuthMiddleware;
 use Pmsrapi\V2\Http\Middleware\RateLimitMiddleware;
@@ -132,6 +138,34 @@ $container->singleton(AuthMiddleware::class, static fn(Container $c): AuthMiddle
 $container->singleton(RateLimitMiddleware::class, static fn(Container $c): RateLimitMiddleware => new RateLimitMiddleware(
     $c->get(Config::class),
     $c->get(RateLimiter::class),
+));
+
+// --- Cluster (roles, inter-service streaming, hive) ---
+$container->singleton(Capabilities::class, static fn(Container $c): Capabilities => new Capabilities($c->get(Config::class)));
+
+$container->singleton(ServiceClient::class, static fn(Container $c): ServiceClient => new ServiceClient(
+    $c->get(Config::class),
+    $c->get(Logger::class),
+));
+
+$container->singleton(HiveRegistry::class, static fn(Container $c): HiveRegistry => new HiveRegistry(
+    $c->get(RedisClient::class),
+    $c->get(Config::class),
+    $c->get(Logger::class),
+));
+
+$container->singleton(CapabilitiesController::class, static fn(Container $c): CapabilitiesController => new CapabilitiesController(
+    $c->get(Capabilities::class),
+));
+
+$container->singleton(StreamController::class, static fn(Container $c): StreamController => new StreamController(
+    $c->get(Config::class),
+    $c->get(Repository::class),
+    $c->get(Schema::class),
+));
+
+$container->singleton(HiveController::class, static fn(Container $c): HiveController => new HiveController(
+    $c->get(HiveRegistry::class),
 ));
 
 return $container;

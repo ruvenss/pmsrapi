@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * v2 front controller — the single HTTP entry point.
- *
+ * @author Ruvenss G. Wilches <ruvenss@gmail.com>
  * Unlike v1 (function-name-in-body dispatch), v2 uses real REST routing:
  *   GET    /v2/{resource}          list
  *   GET    /v2/{resource}/{id}     read one

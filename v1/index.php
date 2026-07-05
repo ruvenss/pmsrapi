@@ -10,8 +10,8 @@ declare(strict_types=1);
  * IF YOU ADD YOUR CODE HERE IT WILL BE OVERWRITTEN ON THE NEXT UPDATE
  * @category MicroService
  * @package  MicroService_Restful_API
- * @version  0.0.26
- * @since    0.0.26
+ * @version  0.0.27
+ * @since    0.0.27
  * @link     https://github.com/ruvenss/pmsrapi
  */
 require_once getcwd() . '/config.php';

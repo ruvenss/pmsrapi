@@ -98,6 +98,27 @@ polls it (~1s). Rules when touching this subsystem:
   token and bypass rate limiting. The recorder ignores `/_debug` and `/health`.
 - Requires phpredis + Redis; without them the whole thing silently no-ops.
 
+## Cluster: roles, streaming, Hive (`Cluster/`)
+
+- `role` in config: `worker` (default) or `hive_mind`. The Hive is DEV-only; its
+  `/hive` routes register only when `Config::isHiveMind()`.
+- Workers declare owned functions in the `functions` config block. A function
+  name must be owned by **exactly one** service; the Hive flags duplicates via
+  `HiveRegistry::buildMap()` (a pure function — unit-test it, don't mock Redis).
+- Cross-service calls go through `ServiceClient` — never hand-roll curl.
+  `call()` for request/response; `stream()` returns a Generator of NDJSON
+  records. It resolves targets from the LOCAL `function_map` + `universe`, so a
+  worker needs no Hive at runtime (that's the whole point).
+- Stream from any endpoint with `Response::stream($generator)` (NDJSON,
+  `application/x-ndjson`). Keep producers as Generators (constant memory) — never
+  buffer a whole table. `Connection` has no streaming query helper yet; page in a
+  loop (see `StreamController::rows`).
+- `/hive` (shell) + `/_debug` are public; their data endpoints are token-gated,
+  skip rate limiting, and are ignored by the recorder. Preserve that for new
+  hive/debug endpoints.
+- Baking prod config is `hive-sync.php` (CLI, dev-only, atomic write to
+  `secrets_path`). Do NOT add an HTTP endpoint that rewrites the secret config.
+
 ## Config
 
 - Public: [config.php](config.php) returns an array (identity, headers,

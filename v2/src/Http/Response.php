@@ -29,6 +29,7 @@ final class Response
         public array $headers = [],
         public readonly ?string $rawBody = null,
         public readonly string $rawContentType = 'text/html; charset=utf-8',
+        public readonly ?iterable $stream = null,
     ) {}
 
     public static function ok(mixed $data, ?array $meta = null): self
@@ -52,6 +53,18 @@ final class Response
     public static function raw(int $status, string $body, string $contentType = 'text/html; charset=utf-8'): self
     {
         return new self($status, $status < 400, null, null, null, [], $body, $contentType);
+    }
+
+    /**
+     * An NDJSON stream — the standard inter-service streaming transport. Each
+     * item of $rows is emitted as one JSON line and flushed as it is produced,
+     * so a Generator source streams at constant memory.
+     *
+     * @param iterable<mixed> $rows
+     */
+    public static function stream(iterable $rows): self
+    {
+        return new self(200, true, null, null, null, [], null, 'application/x-ndjson', $rows);
     }
 
     /**
@@ -100,11 +113,25 @@ final class Response
     {
         if (!headers_sent()) {
             http_response_code($this->status);
-            header('Content-Type: ' . ($this->rawBody !== null ? $this->rawContentType : 'application/json; charset=utf-8'));
+            header('Content-Type: ' . $this->contentType());
             header('X-Powered-By: PMSRAPI-v2');
+            if ($this->stream !== null) {
+                header('X-Accel-Buffering: no'); // let NDJSON reach the client live (nginx)
+            }
             foreach ($this->headers as $name => $value) {
                 header("{$name}: {$value}");
             }
+        }
+
+        if ($this->stream !== null) {
+            while (ob_get_level() > 0) {
+                ob_end_flush();
+            }
+            foreach ($this->stream as $row) {
+                echo json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), "\n";
+                flush();
+            }
+            return;
         }
 
         if ($this->rawBody !== null) {
@@ -127,5 +154,14 @@ final class Response
         }
 
         echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    private function contentType(): string
+    {
+        return match (true) {
+            $this->stream !== null => 'application/x-ndjson',
+            $this->rawBody !== null => $this->rawContentType,
+            default => 'application/json; charset=utf-8',
+        };
     }
 }

@@ -120,4 +120,4 @@ Deploy installs two systemd units per service: the HTTP server (`php -S`) and `<
 
 ## Versioning
 
-Bump the version in **three** places together, or auto-update/`info` will disagree: `manifest.json` (`version` + the `source-code` list if files changed), the `ms_version`/`@version` docblocks in core files, and the release URL/tag. Releases are git tags like `0.0.26`; the installer downloads the tagged zip.
+Bump the version in **three** places together, or auto-update/`info` will disagree: `manifest.json` (`version` + the `source-code` list if files changed), the `ms_version`/`@version` docblocks in core files, and the release URL/tag. Releases are git tags like `0.0.27`; the installer downloads the tagged zip.

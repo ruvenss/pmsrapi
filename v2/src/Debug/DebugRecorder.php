@@ -43,8 +43,8 @@ final class DebugRecorder
     private readonly bool $captureBodies;
     private readonly int $maxBuffer;
 
-    /** Paths that are never recorded (the dashboard itself + noisy health pings). */
-    private const SKIP_PREFIXES = ['/_debug', '/health'];
+    /** Paths that are never recorded (the dashboards themselves + noisy health pings). */
+    private const SKIP_PREFIXES = ['/_debug', '/health', '/hive'];
 
     private bool $active = false;
     private bool $errored = false;

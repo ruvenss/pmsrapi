@@ -90,6 +90,20 @@ final class Config
         return $this->environment() === 'prod';
     }
 
+    /**
+     * Cluster role: "worker" (default) or "hive_mind". The Hive is a
+     * development-only coordinator; workers run standalone in production.
+     */
+    public function role(): string
+    {
+        return (string) $this->secret('role', 'worker');
+    }
+
+    public function isHiveMind(): bool
+    {
+        return $this->role() === 'hive_mind';
+    }
+
     public function serverToken(): string
     {
         $token = $this->secret('ms_server_token');

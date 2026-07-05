@@ -13,6 +13,7 @@ v1 — but a modern, secure, Redis-accelerated internal design.
 | Identifiers | Trusted from client | **Whitelisted** against live schema |
 | Caching / limits / queue | File-based / none | **Redis**: cache, rate-limit, queue, tokens |
 | Debugging | tail log files | **live dashboard**, auto-armed on 5xx |
+| Inter-service | `universe` + `http_rest` | `function_map` + **NDJSON streaming** + Hive map |
 | Response | `http_response()` + `die()` | `Response` returned once by front controller |
 
 > v2 lives beside v1 — it does not replace or modify it. Run whichever you mount.
@@ -85,6 +86,16 @@ v2 splits config exactly like v1:
   // On-demand production debugger (see "Live debug dashboard"):
   "debug": { "enabled": true, "auto_arm_on_error": true, "window": 300,
              "max_events": 5000, "capture_bodies": true, "ttl": 3600 },
+
+  // Cluster role + the functions THIS service owns (see "Cluster"):
+  "role": "worker",
+  "functions": {
+    "get_client": { "method": "GET", "path": "/clients/{id}" }
+  },
+  // Baked in by `php v2/hive-sync.php` so the worker runs standalone in prod:
+  "function_map": {
+    "get_invoice": { "service": "billing", "method": "GET", "path": "/invoices/{id}" }
+  },
 
   // Expose tables as REST resources WITHOUT writing code:
   "resources": {
@@ -222,6 +233,91 @@ if either is missing the whole subsystem silently no-ops.
 
 ---
 
+## Cluster: roles, streaming & the Hive
+
+### Roles
+
+Each service declares a `role` in its secret config:
+
+- **`worker`** (default) — a normal service. Owns functions, serves traffic, and
+  in **production runs standalone** from a baked-in map — no Hive required.
+- **`hive_mind`** — a **development-only** coordinator. It aggregates every
+  worker's function manifest, flags duplicates, and renders the map. Its `/hive`
+  routes exist only when `role` is `hive_mind`.
+
+### Functions & the one-owner rule
+
+A worker lists the functions it **owns** in config — each mapped to how it is
+invoked on that service:
+
+```jsonc
+"functions": {
+  "get_client":     { "method": "GET",  "path": "/clients/{id}" },
+  "export_clients": { "method": "POST", "path": "/stream/clients", "stream": true }
+}
+```
+
+A function name must belong to **exactly one** service: `get_client`'s logic
+lives in one place and every other service *calls* it instead of re-implementing
+it. The Hive enforces this by detecting collisions. `GET /v2/capabilities`
+returns a worker's manifest — this is what the Hive polls.
+
+### Inter-service streaming (NDJSON)
+
+Services exchange data with `ServiceClient`, which resolves the target from the
+**local** `function_map` + `universe` (so a worker needs no Hive at runtime):
+
+```php
+$client = $container->get(ServiceClient::class);
+
+// request/response
+$client->call('get_client', ['id' => 42]);
+
+// streaming — records arrive lazily, constant memory (a PHP Generator)
+foreach ($client->stream('export_clients', ['since' => '2026-01-01']) as $row) {
+    process($row);
+}
+```
+
+The wire format is **NDJSON over chunked HTTP** (`application/x-ndjson`, one JSON
+object per line). Produce a stream from any endpoint with `Response::stream($gen)`
+where `$gen` is a Generator; `GET /v2/stream/{resource}` streams a whole table
+that way (paged internally, flat memory), and `GET /v2/stream/_demo` is a
+DB-free example.
+
+### The Hive map (VueFlow)
+
+When `role` is `hive_mind`, the coordinator exposes:
+
+| endpoint | purpose |
+|---|---|
+| `GET /v2/hive` | VueFlow graph UI (public shell) |
+| `GET /v2/hive/map` | services, per-function owners, collisions, function_map |
+| `GET /v2/hive/collisions` | just the duplicate-ownership problems |
+| `POST /v2/hive/refresh` | poll every universe node's `/capabilities` |
+| `POST /v2/hive/register` | a worker pushes its own manifest |
+| `GET /v2/hive/export/{service}` | the map to bake into a given worker |
+
+Open `https://<hive>/v2/hive` to see every service and its functions as a graph,
+**duplicated functions highlighted in red**. (The graph loads VueFlow from a CDN
+— dev-only, needs internet; if it can't load it falls back to a list view. The
+`/hive/map` JSON is always available regardless.)
+
+### Dev → prod: baking the map in
+
+In development a worker syncs its map from the Hive and writes it into its own
+config, then runs standalone forever after:
+
+```bash
+php v2/hive-sync.php   # pulls /hive/export/<service>, bakes function_map + universe
+```
+
+Point a worker at the Hive with a `"hive": { "ip", "port", "token", "ssl" }`
+block (or a universe node named `hive`). `hive-sync` refuses to run in `prod` —
+sync in dev, then ship the baked config.
+
+---
+
 ## Production web server
 
 **nginx** (reverse-proxy to `php -S`, or php-fpm):
@@ -253,6 +349,7 @@ v2/
   index.php          front controller (HTTP entry point)     [core]
   server.php         dev-only built-in-server router         [core]
   worker.php         CLI webhook/queue worker                [core]
+  hive-sync.php      CLI: bake the Hive map into worker config [core, dev-only]
   bootstrap.php      composition root (DI wiring)            [core]
   routes.php         route table (system + config CRUD)      [core, extend at bottom]
   config.php         PUBLIC config (edit for your service)
@@ -261,11 +358,12 @@ v2/
     Core/            Autoloader, Config, Container, Router, Route, Kernel
     Http/            Request, Response, HttpMethod, Middleware, ResourceDefinition
       Middleware/    AuthMiddleware, RateLimitMiddleware
-      Controllers/   CrudController, SystemController, DebugController
+      Controllers/   Crud, System, Debug, Capabilities, Stream, Hive (…Controller)
     Database/        Connection, Schema, Repository   (mysqli prepared statements)
     Cache/           RedisClient, QueryCache, RateLimiter, RateLimitResult
     Queue/           RedisQueue, WebhookDispatcher
     Security/        TokenStore
+    Cluster/         Role, Capabilities, ServiceClient, HiveRegistry, hive-map.html
     Debug/           DebugRecorder, Redactor, DebugEventType, dashboard.html
     Support/         Logger, Paginator
     Exception/       ApiException + typed subclasses

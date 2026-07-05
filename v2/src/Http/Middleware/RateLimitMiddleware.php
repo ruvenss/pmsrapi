@@ -32,8 +32,8 @@ final class RateLimitMiddleware implements Middleware
 
     public function process(Request $request, Closure $next): Response
     {
-        // The debug dashboard polls frequently and is admin-only — never throttle it.
-        if (str_starts_with($request->path, '/_debug')) {
+        // The debug + hive dashboards poll frequently and are admin-only — never throttle them.
+        if (str_starts_with($request->path, '/_debug') || str_starts_with($request->path, '/hive')) {
             return $next($request);
         }
 

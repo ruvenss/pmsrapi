@@ -1,4 +1,4 @@
-# PHP Micro Service REST API 0.0.26
+# PHP Micro Service REST API 0.0.27
 
 Yes! Yet another REST API built in PHP.
 
@@ -21,9 +21,9 @@ apt upgrade -y
 apt install unzip
 mkdir /home/my_microservice
 cd /home/my_microservice
-wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.26.zip -O "pmsrapi.zip"
+wget -q https://github.com/ruvenss/pmsrapi/archive/refs/tags/0.0.27.zip -O "pmsrapi.zip"
 unzip -qq pmsrapi.zip && rm pmsrapi.zip
-mv pmsrapi-0.0.26/* /home/my_microservice
+mv pmsrapi-0.0.27/* /home/my_microservice
 ./install.sh
 ```
 

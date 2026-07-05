@@ -16,8 +16,11 @@ declare(strict_types=1);
 use Pmsrapi\V2\Core\Config;
 use Pmsrapi\V2\Core\Container;
 use Pmsrapi\V2\Core\Router;
+use Pmsrapi\V2\Http\Controllers\CapabilitiesController;
 use Pmsrapi\V2\Http\Controllers\CrudController;
 use Pmsrapi\V2\Http\Controllers\DebugController;
+use Pmsrapi\V2\Http\Controllers\HiveController;
+use Pmsrapi\V2\Http\Controllers\StreamController;
 use Pmsrapi\V2\Http\Controllers\SystemController;
 use Pmsrapi\V2\Http\HttpMethod;
 use Pmsrapi\V2\Http\Request;
@@ -76,6 +79,30 @@ if ((bool) $config->secret('debug.enabled', false)) {
         => $container->get(DebugController::class)->disarm($r));
     $router->delete('/_debug/events', static fn(Request $r, array $p): Response
         => $container->get(DebugController::class)->clear($r));
+}
+
+// --- Cluster: capability manifest + inter-service NDJSON streaming ---
+$router->get('/capabilities', static fn(Request $r, array $p): Response
+    => $container->get(CapabilitiesController::class)->show($r));
+$router->get('/stream/_demo', static fn(Request $r, array $p): Response
+    => $container->get(StreamController::class)->demo($r));
+$router->get('/stream/{resource}', static fn(Request $r, array $p): Response
+    => $container->get(StreamController::class)->export($r, $p['resource']));
+
+// --- Hive coordinator (DEVELOPMENT only; registered only when role = hive_mind) ---
+if ($config->isHiveMind()) {
+    $router->get('/hive', static fn(Request $r, array $p): Response
+        => $container->get(HiveController::class)->graph($r));
+    $router->get('/hive/map', static fn(Request $r, array $p): Response
+        => $container->get(HiveController::class)->map($r));
+    $router->get('/hive/collisions', static fn(Request $r, array $p): Response
+        => $container->get(HiveController::class)->collisions($r));
+    $router->post('/hive/refresh', static fn(Request $r, array $p): Response
+        => $container->get(HiveController::class)->refresh($r));
+    $router->post('/hive/register', static fn(Request $r, array $p): Response
+        => $container->get(HiveController::class)->register($r));
+    $router->get('/hive/export/{service}', static fn(Request $r, array $p): Response
+        => $container->get(HiveController::class)->export($r, $p['service']));
 }
 
 // --- Add your own custom routes here (they survive core updates) ---
