@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>PMSRAPI · Live Debug</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --border:#2a3240; --text:#e6edf3;
+    --muted:#8b98a5; --accent:#3b82f6; --green:#3fb950; --amber:#d29922; --red:#f85149;
+    --purple:#a371f7; --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:13px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 16px;background:var(--panel);
+    border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+  .brand{font-weight:700;letter-spacing:.3px}
+  .brand small{color:var(--muted);font-weight:400;margin-left:6px}
+  .pill{display:inline-flex;align-items:center;gap:7px;padding:4px 11px;border-radius:999px;
+    background:var(--panel2);border:1px solid var(--border);font-family:var(--mono);font-size:12px}
+  .pill .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+  .pill.rec{border-color:var(--red);color:#ffd7d3}
+  .pill.rec .dot{background:var(--red);animation:blink 1s steps(2,start) infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .spacer{flex:1}
+  button,select,input{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--border);
+    border-radius:7px;padding:6px 10px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.warn:hover{border-color:var(--red)}
+  input{cursor:text;font-family:var(--mono)}
+  .grow{flex:1;min-width:120px}
+  .bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 16px;background:var(--panel);
+    border-bottom:1px solid var(--border)}
+  .toolbar{position:sticky;top:53px;z-index:4}
+  .counts{color:var(--muted);font-family:var(--mono);font-size:12px}
+  main{padding:0 0 40px}
+  .row{border-bottom:1px solid var(--border);cursor:pointer}
+  .row:hover{background:#12171f}
+  .row .head{display:grid;grid-template-columns:78px 92px 1fr 62px 74px 66px;gap:10px;align-items:center;
+    padding:7px 16px}
+  .t{font-family:var(--mono);color:var(--muted);font-size:11px}
+  .badge{justify-self:start;padding:2px 8px;border-radius:6px;font-family:var(--mono);font-size:11px;
+    font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .b-request{background:rgba(59,130,246,.15);color:#7cb2ff}
+  .b-response{background:rgba(63,185,80,.15);color:#66d97a}
+  .b-query{background:rgba(163,113,247,.16);color:#c297ff}
+  .b-error{background:rgba(248,81,73,.16);color:#ff9d96}
+  .b-log{background:rgba(139,152,165,.16);color:#b8c2cd}
+  .path{font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .meth{color:var(--muted);font-weight:700;margin-right:8px}
+  .status{font-family:var(--mono);text-align:right;font-weight:600}
+  .s2{color:var(--green)} .s4{color:var(--amber)} .s5{color:var(--red)}
+  .dur{font-family:var(--mono);color:var(--muted);text-align:right;font-size:12px}
+  .rid{justify-self:end;font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:5px;
+    background:var(--panel2);border:1px solid var(--border)}
+  .detail{display:none;padding:0 16px 12px 16px;background:#0b0f14}
+  .row.open .detail{display:block}
+  pre{margin:6px 0 0;padding:12px;background:#05080c;border:1px solid var(--border);border-radius:8px;
+    overflow:auto;font-family:var(--mono);font-size:12px;color:#cbd5e1;max-height:460px}
+  .empty{padding:60px 16px;text-align:center;color:var(--muted)}
+  .tok{display:flex;gap:8px;align-items:center}
+  .hidden{display:none!important}
+  .note{color:var(--amber);font-size:12px}
+  @media(max-width:720px){.row .head{grid-template-columns:64px 78px 1fr 56px;}.dur,.rid{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">PMSRAPI <small id="svc">debug</small></div>
+  <div class="pill" id="statePill"><span class="dot"></span><span id="stateText">connecting…</span></div>
+  <div class="spacer"></div>
+  <div class="tok" id="tokBar">
+    <input class="grow" id="token" type="password" placeholder="Bearer token" autocomplete="off">
+    <button id="saveTok">Connect</button>
+  </div>
+</header>
+
+<div class="bar toolbar">
+  <button id="armBtn">● Arm capture</button>
+  <button id="disarmBtn" class="hidden">■ Disarm</button>
+  <button id="pauseBtn">⏸ Pause</button>
+  <button id="clearBtn" class="warn">Clear</button>
+  <select id="filter">
+    <option value="">All events</option>
+    <option value="request">Requests</option>
+    <option value="response">Responses</option>
+    <option value="query">DB queries</option>
+    <option value="error">Errors</option>
+  </select>
+  <input class="grow" id="search" placeholder="filter by path / sql…">
+  <select id="interval">
+    <option value="1000">1s</option>
+    <option value="2000">2s</option>
+    <option value="5000">5s</option>
+  </select>
+  <div class="spacer"></div>
+  <div class="counts" id="counts">0 events</div>
+</div>
+
+<main>
+  <div id="list"></div>
+  <div class="empty" id="empty">No captured events yet. Capture auto-arms on the next 5xx — or hit <b>Arm capture</b>.</div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var BASE = location.pathname.replace(/\/+$/,"");
+  var token = localStorage.getItem("pmsrapi_debug_token") || "";
+  var cursor = "0-0";
+  var paused = false;
+  var timer = null;
+  var interval = 1000;
+  var total = 0;
+  var seen = {};
+  var el = function(id){ return document.getElementById(id); };
+
+  el("token").value = token;
+  el("saveTok").onclick = function(){
+    token = el("token").value.trim();
+    localStorage.setItem("pmsrapi_debug_token", token);
+    cursor = "0-0"; el("list").innerHTML=""; total=0; seen={};
+    tick(true);
+  };
+
+  function headers(){ return token ? {"Authorization":"Bearer "+token} : {}; }
+
+  function api(path, opts){
+    opts = opts || {};
+    opts.headers = Object.assign(headers(), opts.headers||{});
+    return fetch(BASE+path, opts).then(function(r){
+      if(r.status===401){ setState("unauth"); throw new Error("unauthorized"); }
+      return r.json();
+    });
+  }
+
+  function setState(kind, text){
+    var pill = el("statePill"), txt = el("stateText");
+    pill.className = "pill" + (kind==="rec" ? " rec" : "");
+    if(kind==="unauth"){ txt.textContent="enter token ↗"; el("token").focus(); }
+    else txt.textContent = text || (kind==="rec" ? "REC" : "idle");
+  }
+
+  function fmtTime(ms){
+    var d = new Date(ms);
+    return d.toLocaleTimeString([], {hour12:false}) + "." + String(d.getMilliseconds()).padStart(3,"0");
+  }
+  function hue(rid){ var h=0; for(var i=0;i<rid.length;i++){ h=(h*31+rid.charCodeAt(i))%360; } return h; }
+  function esc(s){ return String(s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
+
+  function summarize(ev){
+    var d = ev.data||{};
+    if(ev.type==="request")  return {meth:d.method, text:d.path, right:"", cls:""};
+    if(ev.type==="response") return {meth:"", text:"→ "+(d.status||"")+"", right:(d.duration_ms||0)+"ms",
+                                     cls:statusClass(d.status), status:d.status, dur:d.duration_ms};
+    if(ev.type==="query")    return {meth:"SQL", text:(d.sql||"").replace(/\s+/g," ").slice(0,200),
+                                     right:(d.duration_ms||0)+"ms", dur:d.duration_ms, rows:d.rows};
+    if(ev.type==="error")    return {meth:"", text:(d.class||"Error")+": "+(d.message||""), cls:"s5"};
+    return {meth:"", text:(d.message||JSON.stringify(d)).slice(0,200)};
+  }
+  function statusClass(s){ return s>=500?"s5":s>=400?"s4":s>=200?"s2":""; }
+
+  function addRow(ev){
+    var s = summarize(ev);
+    var row = document.createElement("div");
+    row.className = "row";
+    row.dataset.type = ev.type;
+    row.dataset.text = ((s.meth||"")+" "+(s.text||"")).toLowerCase();
+    var h = hue(ev.rid||"");
+    var statusHtml = s.status!=null ? '<div class="status '+(s.cls||"")+'">'+esc(s.status)+'</div>' :
+                     '<div class="status"></div>';
+    row.innerHTML =
+      '<div class="head">'+
+        '<div class="t">'+fmtTime(ev.ts)+'</div>'+
+        '<div class="badge b-'+ev.type+'">'+ev.type+'</div>'+
+        '<div class="path"><span class="meth">'+esc(s.meth||"")+'</span>'+esc(s.text||"")+'</div>'+
+        statusHtml+
+        '<div class="dur">'+esc(s.right||"")+'</div>'+
+        '<div class="rid" style="border-color:hsl('+h+',50%,45%);color:hsl('+h+',70%,72%)" title="request '+esc(ev.rid||"")+'">'+esc((ev.rid||"").slice(0,6))+'</div>'+
+      '</div>'+
+      '<div class="detail"><pre>'+esc(JSON.stringify(ev.data,null,2))+'</pre></div>';
+    row.querySelector(".head").onclick = function(){ row.classList.toggle("open"); };
+    applyFilter(row);
+    el("list").insertBefore(row, el("list").firstChild);
+    // cap DOM
+    while(el("list").children.length > 1500){ el("list").removeChild(el("list").lastChild); }
+  }
+
+  function applyFilter(row){
+    var f = el("filter").value, q = el("search").value.toLowerCase();
+    var ok = (!f || row.dataset.type===f) && (!q || row.dataset.text.indexOf(q)>=0);
+    row.style.display = ok ? "" : "none";
+  }
+  function refilter(){ Array.prototype.forEach.call(el("list").children, applyFilter); }
+  el("filter").onchange = refilter;
+  el("search").oninput = refilter;
+
+  function renderStatus(st){
+    el("svc").textContent = (st.service||"debug") + " · " + (st.environment||"");
+    el("counts").textContent = (st.events||0) + " events";
+    if(st.armed){
+      setState("rec", "REC " + mmss(st.ttl));
+      el("armBtn").classList.add("hidden"); el("disarmBtn").classList.remove("hidden");
+    } else {
+      setState("idle");
+      el("armBtn").classList.remove("hidden"); el("disarmBtn").classList.add("hidden");
+    }
+  }
+  function mmss(s){ s=Math.max(0,s|0); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+
+  function tick(force){
+    if(paused && !force) return;
+    if(!token){ setState("unauth"); return; }
+    api("/status").then(renderStatus).catch(function(){});
+    api("/events?since="+encodeURIComponent(cursor)+"&limit=300").then(function(res){
+      var evs = (res.data && res.data.events) || [];
+      if(res.data && res.data.cursor) cursor = res.data.cursor;
+      evs.forEach(function(ev){
+        if(seen[ev.id]) return; seen[ev.id]=1; total++;
+        if(el("empty")) el("empty").remove();
+        addRow(ev);
+      });
+    }).catch(function(){});
+  }
+
+  function restart(){ if(timer) clearInterval(timer); timer=setInterval(tick, interval); }
+  el("interval").onchange = function(){ interval=parseInt(this.value,10); restart(); };
+  el("pauseBtn").onclick = function(){ paused=!paused; this.textContent = paused? "▶ Resume":"⏸ Pause"; };
+  el("armBtn").onclick   = function(){ api("/arm",{method:"POST"}).then(renderStatus).catch(function(){}); };
+  el("disarmBtn").onclick= function(){ api("/disarm",{method:"POST"}).then(renderStatus).catch(function(){}); };
+  el("clearBtn").onclick = function(){
+    if(!confirm("Clear all captured events?")) return;
+    api("/events",{method:"DELETE"}).then(function(){
+      el("list").innerHTML=""; total=0; seen={}; cursor="0-0";
+    }).catch(function(){});
+  };
+
+  restart(); tick(true);
+})();
+</script>
+</body>
+</html>

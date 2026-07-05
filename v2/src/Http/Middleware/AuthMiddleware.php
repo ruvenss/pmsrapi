@@ -23,8 +23,9 @@ use Pmsrapi\V2\Security\TokenStore;
  */
 final class AuthMiddleware implements Middleware
 {
-    /** @var list<string> */
-    private const PUBLIC_PATHS = ['/health'];
+    /** @var list<string> Public paths. Only the debug HTML shell is public;
+     *  its data endpoints (/_debug/status, /_debug/events, ...) stay gated. */
+    private const PUBLIC_PATHS = ['/health', '/_debug'];
 
     public function __construct(
         private readonly Config $config,

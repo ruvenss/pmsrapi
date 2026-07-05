@@ -2,7 +2,7 @@
 
 **Version:** 2.1.0
 **Focus:** PHP 8.0 - 8.5, PSR Standards, Modern PHP Features
-**Rules:** 51 (9 type + 16 modern + 6 PSR + 5 SOLID + 5 error + 5 perf + 5 security)
+**Rules:** 52 (9 type + 16 modern + 6 PSR + 5 SOLID + 5 error + 5 perf + 6 security)
 **License:** MIT
 
 ---
@@ -1121,6 +1121,41 @@ if (password_verify($inputPassword, $storedHash)) {
         $newHash = password_hash($inputPassword, PASSWORD_ARGON2ID);
     }
 }
+```
+
+---
+
+### 7.4 Read-Only Code, Externalized Writable State
+
+**Impact:** CRITICAL
+
+Deploy the code tree read-only. Caches, logs, uploads, sessions and queues must
+live in a separate directory outside the code (absolute path from config, a
+mounted volume, or a backing service like Redis). Nothing writes into the
+deployment dir or web root — a read-only tree means a file-write bug can't drop
+a webshell.
+
+**Bad:**
+```php
+<?php
+file_put_contents(__DIR__ . '/cache/data.json', $payload); // writable code tree
+move_uploaded_file($tmp, getcwd() . '/public/uploads/' . $name);
+```
+
+**Good:**
+```php
+<?php
+
+declare(strict_types=1);
+
+// Offload state to a backing service, or use an absolute path OUTSIDE the code.
+$cache->remember($key, $ttl, $producer);          // Redis
+$log = '/var/log/weather/app.log';                // separate mount, from config
+```
+
+```bash
+chmod -R a-w /srv/weather            # immutable code, owned by root
+install -d -o app -g app /var/lib/weather /var/log/weather   # writable state elsewhere
 ```
 
 ---

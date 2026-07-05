@@ -9,9 +9,10 @@ v1 — but a modern, secure, Redis-accelerated internal design.
 | Style | Procedural, `define()` constants | Namespaced classes, DI container |
 | Autoloading | Manual `include` | Hand-rolled **PSR-4** (no Composer) |
 | Routing | `function` name in JSON body | Real **REST** URLs (`GET /v2/users/42`) |
-| SQL | mysqli string concatenation | mysqli **prepared statements** everywhere |
+| SQL | mysqli string concatenation | mysqli **prepared + persistent** everywhere |
 | Identifiers | Trusted from client | **Whitelisted** against live schema |
 | Caching / limits / queue | File-based / none | **Redis**: cache, rate-limit, queue, tokens |
+| Debugging | tail log files | **live dashboard**, auto-armed on 5xx |
 | Response | `http_response()` + `die()` | `Response` returned once by front controller |
 
 > v2 lives beside v1 — it does not replace or modify it. Run whichever you mount.
@@ -22,7 +23,10 @@ v1 — but a modern, secure, Redis-accelerated internal design.
 
 - PHP **8.3+** (CLI + a web SAPI). No Composer, no build step.
 - Extensions: `mysqli`, `redis` (phpredis), `curl`, `json`, `mbstring`.
-- MySQL / MariaDB.
+- MySQL / MariaDB — connections are **persistent** (`p:` host prefix), so size
+  the server's `max_connections` for `workers × instances`. A DB is **optional**:
+  a service with no `db` block runs fine, and `/info` reports it as
+  `not_configured`.
 - Redis 6+ (optional but strongly recommended — the service degrades gracefully
   without it, losing caching/rate-limiting/queueing, not correctness).
 
@@ -78,6 +82,10 @@ v2 splits config exactly like v1:
   "cache":      { "ttl": 30 },
   "rate_limit": { "enabled": true, "max": 120, "window": 60, "fail_open": true },
 
+  // On-demand production debugger (see "Live debug dashboard"):
+  "debug": { "enabled": true, "auto_arm_on_error": true, "window": 300,
+             "max_events": 5000, "capture_bodies": true, "ttl": 3600 },
+
   // Expose tables as REST resources WITHOUT writing code:
   "resources": {
     "users": {
@@ -108,7 +116,7 @@ Every route is mounted under `/v2` and (except `/health`) requires
 | Method & path | Action |
 |---|---|
 | `GET /v2/health` | Liveness + DB/Redis probe (**public**) |
-| `GET /v2/info` | Service metadata |
+| `GET /v2/info` | Service metadata + MySQL/Redis connection state |
 | `GET /v2/{resource}` | List (filter, sort, paginate) |
 | `GET /v2/{resource}/{id}` | Read one |
 | `POST /v2/{resource}` | Create (JSON body = column ⇒ value) |
@@ -141,6 +149,7 @@ Preserves v1's shape and adds structured errors + pagination meta:
 | Webhook/job queue | `Queue\RedisQueue` | Enqueue logs an error; the write still succeeds |
 | Dynamic API tokens | `Security\TokenStore` | Only the static master token works |
 | Schema whitelist cache | `Database\Schema` | Falls back to per-request `information_schema` reads |
+| Debug capture | `Debug\DebugRecorder` | Recording off; requests unaffected |
 
 Cache invalidation is **O(1) per table** via a version counter embedded in cache
 keys — a write bumps the version, orphaning old keys (they expire by TTL). No
@@ -158,6 +167,58 @@ php v2/worker.php --once   # drain then exit (cron/testing)
 Writes emit `{resource}.created|updated|deleted` events onto the Redis queue;
 the worker delivers each to matching subscribers with an
 `X-Signature: sha256=<hmac>` header. Request latency never waits on subscribers.
+
+---
+
+## Live debug dashboard
+
+An **on-demand production debugger**. It sits idle, then starts capturing the
+moment something breaks — so you can watch the failing traffic in real time
+without leaving verbose logging on in production.
+
+**How it works**
+
+- Every request is buffered **in memory** as it runs — the request, the response,
+  and every DB query (SQL + bound params + timing). No I/O on the hot path.
+- On a **5xx or uncaught exception** the buffer is flushed to a capped Redis
+  Stream and a capture **window** opens (default 300s): the triggering
+  transaction is saved in full, and everything for the next few minutes is
+  captured too. You can also **Arm** it manually to watch proactively.
+- The dashboard polls the stream (~1s) and renders transactions, responses, and
+  DB interactions live, colour-grouped by request id, each row expandable.
+- Captured data lives **only in Redis** with a TTL — never on disk (the code tree
+  is read-only). Secrets (`Authorization`/`Cookie` headers, and
+  `password`/`token`/`secret`/… fields) are **redacted at capture time**.
+
+**Open it:** `https://<host>/v2/_debug` — paste the Bearer token when prompted.
+
+| Method & path | Purpose |
+|---|---|
+| `GET /v2/_debug` | Dashboard UI (public shell — no data) |
+| `GET /v2/_debug/status` | Armed state, window TTL, event count |
+| `GET /v2/_debug/events?since=<id>` | Poll events newer than a cursor |
+| `POST /v2/_debug/arm` | Manually open a window `{ "ttl": 300, "reason": "..." }` |
+| `POST /v2/_debug/disarm` | Close the window |
+| `DELETE /v2/_debug/events` | Clear the captured stream |
+
+**Config** — secret JSON `debug` block:
+
+| key | default | meaning |
+|---|---|---|
+| `enabled` | `false` | master switch; off = no capture, routes disabled |
+| `auto_arm_on_error` | `true` | open a window automatically on a 5xx |
+| `window` | `300` | capture window, seconds |
+| `capture_bodies` | `true` | include request/response bodies (redacted) |
+| `max_events` | `5000` | Redis Stream cap (MAXLEN ~) |
+| `ttl` | `3600` | stream self-expiry, seconds |
+| `redact` | `[]` | extra body/param key fragments to mask |
+| `max_buffer` | `500` | max events buffered per request |
+
+**Security & requirements**: the dashboard exposes redacted **production traffic**
+— treat the Bearer token as admin and only enable it where that token is trusted.
+The data endpoints are gated by the token and excluded from rate limiting; the
+HTML shell is the only public part. Requires the **phpredis** extension + Redis;
+if either is missing the whole subsystem silently no-ops.
 
 ---
 
@@ -200,11 +261,12 @@ v2/
     Core/            Autoloader, Config, Container, Router, Route, Kernel
     Http/            Request, Response, HttpMethod, Middleware, ResourceDefinition
       Middleware/    AuthMiddleware, RateLimitMiddleware
-      Controllers/   CrudController, SystemController
+      Controllers/   CrudController, SystemController, DebugController
     Database/        Connection, Schema, Repository   (mysqli prepared statements)
     Cache/           RedisClient, QueryCache, RateLimiter, RateLimitResult
     Queue/           RedisQueue, WebhookDispatcher
     Security/        TokenStore
+    Debug/           DebugRecorder, Redactor, DebugEventType, dashboard.html
     Support/         Logger, Paginator
     Exception/       ApiException + typed subclasses
 ```

@@ -12,7 +12,7 @@ This skill provides guidance for:
 - PSR standards compliance
 - SOLID principles
 
-## Categories (51 rules)
+## Categories (52 rules)
 
 ### 1. Type System (Critical) — 9 rules
 Strict types, return types, union/intersection types, nullable handling, void/never.
@@ -32,8 +32,8 @@ Custom exceptions, exception hierarchy, specific catches, finally cleanup, never
 ### 6. Performance (Medium) — 5 rules
 Generators, lazy loading, native array/string functions, avoiding globals.
 
-### 7. Security (Critical) — 5 rules
-Input validation, output escaping, password hashing, prepared statements, file upload security.
+### 7. Security (Critical) — 6 rules
+Input validation, output escaping, password hashing, prepared statements, file upload security, read-only code with externalized writable state.
 
 ## Usage
 

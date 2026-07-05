@@ -38,4 +38,4 @@ The section ID (in parentheses) is the filename prefix used to group rules.
 ## 7. Security (sec)
 
 **Impact:** CRITICAL
-**Description:** Security practices including input validation, output escaping, password hashing, prepared statements, and file upload validation protect against OWASP Top 10 vulnerabilities.
+**Description:** Security practices including input validation, output escaping, password hashing, prepared statements, file upload validation, and read-only code with externalized writable state protect against OWASP Top 10 vulnerabilities.

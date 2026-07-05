@@ -7,6 +7,7 @@ namespace Pmsrapi\V2\Database;
 use mysqli;
 use mysqli_sql_exception;
 use Pmsrapi\V2\Core\Config;
+use Pmsrapi\V2\Debug\DebugRecorder;
 use Pmsrapi\V2\Exception\DatabaseException;
 
 /**
@@ -25,8 +26,10 @@ final class Connection
 {
     private ?mysqli $mysqli = null;
 
-    public function __construct(private readonly Config $config)
-    {
+    public function __construct(
+        private readonly Config $config,
+        private readonly ?DebugRecorder $recorder = null,
+    ) {
         // Turn silent mysqli warnings/false-returns into exceptions.
         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
     }
@@ -41,6 +44,28 @@ final class Connection
         return $this->config->hasSecret('db.host');
     }
 
+    /**
+     * Liveness probe for diagnostics (/info, /health). Returns true only if a
+     * live connection can run a trivial query. NEVER throws — any failure, or
+     * "no database configured", returns false. Not every microservice needs a
+     * database, so callers combine this with isConfigured() to distinguish
+     * "absent" from "configured but down".
+     */
+    public function isAlive(): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        try {
+            // SELECT 1 also validates a pooled persistent connection is still
+            // alive (mysqli::ping() is deprecated as of PHP 8.4).
+            return (int) $this->scalar('SELECT 1') === 1;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     private function connection(): mysqli
     {
         if ($this->mysqli instanceof mysqli) {
@@ -51,9 +76,19 @@ final class Connection
             throw new DatabaseException('No database configured in secret config (db block missing).');
         }
 
+        // Enforce PERSISTENT connections (project convention): mysqli reuses a
+        // pooled connection when the host is prefixed with "p:", so we avoid a
+        // TCP handshake + auth on every request. mysqli implicitly resets
+        // session state (rolls back open transactions, closes handlers, etc.)
+        // before handing a pooled connection back, so reuse is safe.
+        $host = (string) $this->config->secret('db.host', '127.0.0.1');
+        if (!str_starts_with($host, 'p:')) {
+            $host = 'p:' . $host;
+        }
+
         try {
             $mysqli = new mysqli(
-                (string) $this->config->secret('db.host', '127.0.0.1'),
+                $host,
                 (string) $this->config->secret('db.username', ''),
                 (string) $this->config->secret('db.password', ''),
                 (string) $this->config->secret('db.name', ''),
@@ -73,6 +108,7 @@ final class Connection
      */
     public function select(string $sql, array $params = []): array
     {
+        $start = microtime(true);
         try {
             $stmt = $this->connection()->prepare($sql);
             $stmt->execute($params);
@@ -81,8 +117,11 @@ final class Connection
             $rows = $result->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
 
+            $this->recorder?->recordQuery($sql, $params, (microtime(true) - $start) * 1000, count($rows));
+
             return $rows;
         } catch (mysqli_sql_exception $e) {
+            $this->recorder?->recordQuery($sql, $params, (microtime(true) - $start) * 1000, -1);
             throw new DatabaseException('Query failed', $e);
         }
     }
@@ -136,15 +175,20 @@ final class Connection
      */
     private function run(string $sql, array $params, bool $returnInsertId): int
     {
+        $start = microtime(true);
         try {
             $conn = $this->connection();
             $stmt = $conn->prepare($sql);
             $stmt->execute($params);
-            $value = $returnInsertId ? $conn->insert_id : $stmt->affected_rows;
+            $affected = $stmt->affected_rows;
+            $value = $returnInsertId ? $conn->insert_id : $affected;
             $stmt->close();
+
+            $this->recorder?->recordQuery($sql, $params, (microtime(true) - $start) * 1000, $affected);
 
             return (int) $value;
         } catch (mysqli_sql_exception $e) {
+            $this->recorder?->recordQuery($sql, $params, (microtime(true) - $start) * 1000, -1);
             throw new DatabaseException('Write failed', $e);
         }
     }

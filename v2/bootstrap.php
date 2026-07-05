@@ -23,7 +23,10 @@ use Pmsrapi\V2\Core\Container;
 use Pmsrapi\V2\Database\Connection;
 use Pmsrapi\V2\Database\Repository;
 use Pmsrapi\V2\Database\Schema;
+use Pmsrapi\V2\Debug\DebugRecorder;
+use Pmsrapi\V2\Debug\Redactor;
 use Pmsrapi\V2\Http\Controllers\CrudController;
+use Pmsrapi\V2\Http\Controllers\DebugController;
 use Pmsrapi\V2\Http\Controllers\SystemController;
 use Pmsrapi\V2\Http\Middleware\AuthMiddleware;
 use Pmsrapi\V2\Http\Middleware\RateLimitMiddleware;
@@ -53,7 +56,20 @@ $container->singleton(Logger::class, static fn(Container $c): Logger => new Logg
 
 $container->singleton(RedisClient::class, static fn(Container $c): RedisClient => new RedisClient($c->get(Config::class)));
 
-$container->singleton(Connection::class, static fn(Container $c): Connection => new Connection($c->get(Config::class)));
+$container->singleton(Redactor::class, static fn(Container $c): Redactor => new Redactor(
+    (array) $c->get(Config::class)->secret('debug.redact', []),
+));
+
+$container->singleton(DebugRecorder::class, static fn(Container $c): DebugRecorder => new DebugRecorder(
+    $c->get(RedisClient::class),
+    $c->get(Config::class),
+    $c->get(Redactor::class),
+));
+
+$container->singleton(Connection::class, static fn(Container $c): Connection => new Connection(
+    $c->get(Config::class),
+    $c->get(DebugRecorder::class),
+));
 
 $container->singleton(QueryCache::class, static fn(Container $c): QueryCache => new QueryCache(
     $c->get(RedisClient::class),
@@ -101,6 +117,11 @@ $container->singleton(SystemController::class, static fn(Container $c): SystemCo
     $c->get(Config::class),
     $c->get(Connection::class),
     $c->get(RedisClient::class),
+));
+
+$container->singleton(DebugController::class, static fn(Container $c): DebugController => new DebugController(
+    $c->get(DebugRecorder::class),
+    $c->get(Config::class),
 ));
 
 $container->singleton(AuthMiddleware::class, static fn(Container $c): AuthMiddleware => new AuthMiddleware(

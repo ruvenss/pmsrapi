@@ -68,10 +68,35 @@ config over a new controller unless you need custom behavior.
 
 - Driver is **mysqli** (kept from v1) in exception mode, but **always prepared**.
   `Connection` exposes `select/selectOne/scalar/insert/affect` — use those.
+- Connections are **persistent** (mysqli `p:` host prefix) and reused across
+  requests — never open a non-persistent mysqli connection. A DB is **optional**
+  (`isConfigured()`); `isAlive()` is the non-throwing liveness probe that
+  `/info` and `/health` report. Since connections persist, size MySQL
+  `max_connections` for `workers × instances`.
 - `Schema` caches `information_schema` lookups in Redis; call `assertTable()` /
   `assertColumns()` before trusting any client-supplied identifier.
 - `Repository` returns plain associative arrays (rows), not entities — keep it
   that way for now; the CRUD contract is array-in/array-out.
+
+## Debug dashboard (`Debug/`)
+
+On-demand production recorder + live UI at `GET /v2/_debug`. Off unless
+`debug.enabled` in the secret config. Flow: every request is buffered **in
+memory** by `DebugRecorder` (`index.php` calls `beginRequest`/`endRequest`;
+`Connection` records each query); on a 5xx or manual **arm** the buffer flushes
+to a **capped Redis Stream** with a TTL and a capture window opens; the dashboard
+polls it (~1s). Rules when touching this subsystem:
+
+- Capture must **never break a request** — every Redis call is best-effort and
+  try/caught, and every method no-ops when `debug.enabled` is false or Redis is
+  down. Keep it that way.
+- Everything captured passes through `Redactor` first. If you capture a **new
+  field**, make sure secrets can't leak (extend the redactor / `debug.redact`).
+- Captured data lives **only in Redis** (TTL'd) — never write it to the code tree
+  ([sec-writable-state-outside-code](../.claude/rules/sec-writable-state-outside-code.md)).
+- `/_debug` (HTML shell) is public; all `/_debug/*` data endpoints require the
+  token and bypass rate limiting. The recorder ignores `/_debug` and `/health`.
+- Requires phpredis + Redis; without them the whole thing silently no-ops.
 
 ## Config
 

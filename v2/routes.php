@@ -17,6 +17,7 @@ use Pmsrapi\V2\Core\Config;
 use Pmsrapi\V2\Core\Container;
 use Pmsrapi\V2\Core\Router;
 use Pmsrapi\V2\Http\Controllers\CrudController;
+use Pmsrapi\V2\Http\Controllers\DebugController;
 use Pmsrapi\V2\Http\Controllers\SystemController;
 use Pmsrapi\V2\Http\HttpMethod;
 use Pmsrapi\V2\Http\Request;
@@ -59,6 +60,22 @@ foreach ($config->resources() as $name => $resourceConfig) {
         $router->delete("/{$def->name}/{id}", static fn(Request $r, array $p): Response
             => $container->get(CrudController::class)->destroy($def, $r, $p['id']));
     }
+}
+
+// --- Live debug dashboard (only when debug.enabled) ---
+if ((bool) $config->secret('debug.enabled', false)) {
+    $router->get('/_debug', static fn(Request $r, array $p): Response
+        => $container->get(DebugController::class)->dashboard($r));
+    $router->get('/_debug/status', static fn(Request $r, array $p): Response
+        => $container->get(DebugController::class)->status($r));
+    $router->get('/_debug/events', static fn(Request $r, array $p): Response
+        => $container->get(DebugController::class)->events($r));
+    $router->post('/_debug/arm', static fn(Request $r, array $p): Response
+        => $container->get(DebugController::class)->arm($r));
+    $router->post('/_debug/disarm', static fn(Request $r, array $p): Response
+        => $container->get(DebugController::class)->disarm($r));
+    $router->delete('/_debug/events', static fn(Request $r, array $p): Response
+        => $container->get(DebugController::class)->clear($r));
 }
 
 // --- Add your own custom routes here (they survive core updates) ---

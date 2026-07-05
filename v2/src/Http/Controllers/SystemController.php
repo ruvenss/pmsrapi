@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Pmsrapi\V2\Http\Controllers;
 
-use mysqli_sql_exception;
 use Pmsrapi\V2\Cache\RedisClient;
 use Pmsrapi\V2\Core\Config;
 use Pmsrapi\V2\Database\Connection;
 use Pmsrapi\V2\Http\Request;
 use Pmsrapi\V2\Http\Response;
-use RedisException;
 
 /**
  * Service metadata and health. GET /info mirrors v1's info endpoint;
@@ -35,10 +33,35 @@ final class SystemController
             'license' => $this->config->public('ms_license', ''),
             'documentation' => $this->config->public('ms_documentation', ''),
             'github_repo' => $this->config->public('ms_github_repo', ''),
-            'database' => $this->db->isConfigured(),
+            'database' => $this->databaseStatus(),
             'redis' => $this->redis->isEnabled(),
             'local_time' => date('Y-m-d H:i:s'),
         ]);
+    }
+
+    /**
+     * MySQL connection state for /info: whether a connection is configured at
+     * all (not every microservice needs one) and — if so — whether it works.
+     *
+     *   not_configured : no "db" block in config; the service runs without MySQL
+     *   connected      : configured and a live query succeeded
+     *   unavailable    : configured but the server can't be reached / queried
+     *
+     * @return array{configured: bool, connected: bool, status: string}
+     */
+    private function databaseStatus(): array
+    {
+        if (!$this->db->isConfigured()) {
+            return ['configured' => false, 'connected' => false, 'status' => 'not_configured'];
+        }
+
+        $connected = $this->db->isAlive();
+
+        return [
+            'configured' => true,
+            'connected' => $connected,
+            'status' => $connected ? 'connected' : 'unavailable',
+        ];
     }
 
     public function health(Request $request): Response
@@ -61,12 +84,7 @@ final class SystemController
             return 'disabled';
         }
 
-        try {
-            $this->db->scalar('SELECT 1');
-            return 'up';
-        } catch (mysqli_sql_exception | \Throwable) {
-            return 'down';
-        }
+        return $this->db->isAlive() ? 'up' : 'down';
     }
 
     private function probeRedis(): string
@@ -76,8 +94,9 @@ final class SystemController
         }
 
         try {
+            // Best-effort probe: any failure (incl. RedisException) means down.
             return $this->redis->connection()->ping() ? 'up' : 'down';
-        } catch (RedisException | \Throwable) {
+        } catch (\Throwable) {
             return 'down';
         }
     }

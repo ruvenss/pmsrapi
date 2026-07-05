@@ -27,6 +27,8 @@ final class Response
         public readonly ?array $error = null,
         public readonly ?array $meta = null,
         public array $headers = [],
+        public readonly ?string $rawBody = null,
+        public readonly string $rawContentType = 'text/html; charset=utf-8',
     ) {}
 
     public static function ok(mixed $data, ?array $meta = null): self
@@ -42,6 +44,14 @@ final class Response
     public static function noContent(): self
     {
         return new self(204, true, null);
+    }
+
+    /**
+     * A raw (non-envelope) response — used to serve the debug dashboard HTML.
+     */
+    public static function raw(int $status, string $body, string $contentType = 'text/html; charset=utf-8'): self
+    {
+        return new self($status, $status < 400, null, null, null, [], $body, $contentType);
     }
 
     /**
@@ -90,11 +100,16 @@ final class Response
     {
         if (!headers_sent()) {
             http_response_code($this->status);
-            header('Content-Type: application/json; charset=utf-8');
+            header('Content-Type: ' . ($this->rawBody !== null ? $this->rawContentType : 'application/json; charset=utf-8'));
             header('X-Powered-By: PMSRAPI-v2');
             foreach ($this->headers as $name => $value) {
                 header("{$name}: {$value}");
             }
+        }
+
+        if ($this->rawBody !== null) {
+            echo $this->rawBody;
+            return;
         }
 
         if ($this->status === 204) {

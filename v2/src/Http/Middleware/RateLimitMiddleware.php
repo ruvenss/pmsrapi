@@ -32,6 +32,11 @@ final class RateLimitMiddleware implements Middleware
 
     public function process(Request $request, Closure $next): Response
     {
+        // The debug dashboard polls frequently and is admin-only — never throttle it.
+        if (str_starts_with($request->path, '/_debug')) {
+            return $next($request);
+        }
+
         if ((bool) $this->config->secret('rate_limit.enabled', true) === false) {
             return $next($request);
         }

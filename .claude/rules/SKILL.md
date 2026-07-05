@@ -10,7 +10,7 @@ metadata:
 
 # PHP Best Practices
 
-Modern PHP 8.x patterns, PSR standards, type system best practices, and SOLID principles. Contains 51 rules for writing clean, maintainable PHP code.
+Modern PHP 8.x patterns, PSR standards, type system best practices, and SOLID principles. Contains 52 rules for writing clean, maintainable PHP code.
 
 ## Step 1: Detect PHP Version
 
@@ -61,7 +61,7 @@ Reference these guidelines when:
 | 4 | SOLID Principles | HIGH | `solid-` | 5 |
 | 5 | Error Handling | HIGH | `error-` | 5 |
 | 6 | Performance | MEDIUM | `perf-` | 5 |
-| 7 | Security | CRITICAL | `sec-` | 5 |
+| 7 | Security | CRITICAL | `sec-` | 6 |
 
 ## Quick Reference
 
@@ -140,13 +140,14 @@ Reference these guidelines when:
 - `perf-string-functions` - Use native string functions over regex
 - `perf-generators` - Use generators for large datasets
 
-### 7. Security (CRITICAL) — 5 rules
+### 7. Security (CRITICAL) — 6 rules
 
 - `sec-input-validation` - Validate and sanitize all external input
 - `sec-output-escaping` - Escape output based on context (HTML, JS, URL)
 - `sec-password-hashing` - Use password_hash/verify, never MD5/SHA1
 - `sec-sql-prepared` - Use prepared statements for all SQL queries
 - `sec-file-uploads` - Validate file type, size, name; store outside web root
+- `sec-writable-state-outside-code` - Read-only code tree; caches/logs/uploads/queues live in an external mounted dir
 
 ## Essential Guidelines
 
