@@ -87,6 +87,8 @@
     <li><a href="#crud-update">Update (PUT / PATCH)</a></li>
     <li><a href="#crud-delete">Delete</a></li>
     <li><a href="#crud-stream">Stream / bulk export</a></li>
+    <li><a href="#crud-aggregate">Advanced SELECT / GROUP BY</a></li>
+    <li><a href="#crud-upsert">Upsert (if exists → update)</a></li>
     <li><a href="#crud-errors">Error responses</a></li>
     <div class="grp">Multiple microservices</div>
     <li><a href="#multi-concepts">Concepts</a></li>
@@ -193,12 +195,19 @@ return [
 <h2 id="crud-resource">CRUD · Define a resource</h2>
 <p>Before the CRUD calls work, the table must exist and be listed under <code>resources</code>. The test env already ships this <code>clients</code> table:</p>
 <div class="code"><span class="lbl">sql</span><pre><code>CREATE TABLE clients (
-  id         INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  name       VARCHAR(120) NOT NULL,
-  email      VARCHAR(190) NOT NULL UNIQUE,
-  status     VARCHAR(20)  NOT NULL DEFAULT 'active',
-  created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre></div>
+  id         INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name       VARCHAR(120)  NOT NULL,
+  email      VARCHAR(190)  NOT NULL UNIQUE,           -- unique key → upsert target
+  status     VARCHAR(20)   NOT NULL DEFAULT 'active',
+  balance    DECIMAL(10,2) NOT NULL DEFAULT 0,          -- numeric col for SUM/AVG/MIN/MAX
+  created_at TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- seeded rows used by the examples below:
+INSERT INTO clients (name,email,status,balance) VALUES
+  ('Ann Lee','ann@example.com','active',120.50),
+  ('Bob Kim','bob@example.com','active', 80.00),
+  ('Cara Ng','cara@example.com','inactive',45.25);</code></pre></div>
 <div class="code"><span class="lbl">json — add to the secret config</span><pre><code>"resources": {
   "clients": { "table": "clients", "methods": ["GET","POST","PUT","DELETE"], "per_page": 25 }
 }</code></pre></div>
@@ -262,6 +271,132 @@ return [
 {"id":2,"name":"Bob Kim","email":"bob@example.com","status":"active"}
 {"id":3,"name":"Cara Ng","email":"cara@example.com","status":"inactive"}</code></pre></div>
 <p>A DB-free demo stream is handy for testing the pipe: <code>curl -sN "$BASE/stream/_demo?count=5" -H "Authorization: Bearer $TOKEN"</code></p>
+
+<h2 id="crud-aggregate">CRUD · Advanced SELECT — GROUP BY, aggregates, CONCAT <span class="m-post">POST</span></h2>
+<p>For grouped/aggregated reads, POST a <b>structured</b> query spec to <code>/{resource}/query</code>. It supports <code>GROUP BY</code>, aggregates (<code>count/sum/avg/min/max</code>), <code>GROUP_CONCAT</code>, <code>CONCAT</code>, <code>HAVING</code>, <code>DISTINCT</code>, filtering, ordering and limits — all with identifiers whitelisted against the live schema and values bound.</p>
+<div class="note warn"><b>Why structured, not raw SQL</b> The spec is validated field-by-field so there is <b>no SQL-injection surface</b> — an illegal column or function is rejected with <span class="pill">422</span>. For anything the builder can't express, write a custom endpoint in <code>routes.php</code>.</div>
+
+<p>Every example below was captured from a live server on the seeded data — the responses are exactly what you'll get.</p>
+
+<h4>1 · Group &amp; count, with GROUP_CONCAT</h4>
+<p>Count clients per <code>status</code>, and list the names in each group:</p>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s -X POST "$BASE/clients/query" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "select": [
+      { "column": "status" },
+      { "fn": "count", "as": "total" },
+      { "fn": "group_concat", "column": "name", "separator": ", ", "as": "names" }
+    ],
+    "group_by": ["status"],
+    "order": "total:desc"
+  }'</code></pre></div>
+<div class="code"><span class="lbl">200 OK · verified</span><pre><code>{ "success": true, "data": [
+  { "status": "active",   "total": 2, "names": "Ann Lee, Bob Kim" },
+  { "status": "inactive", "total": 1, "names": "Cara Ng" }
+] }</code></pre></div>
+
+<h4>2 · SUM / AVG / MIN / MAX (with a WHERE filter)</h4>
+<p>Aggregate the <code>balance</code> of active clients only:</p>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s -X POST "$BASE/clients/query" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "select": [
+      { "fn": "sum", "column": "balance", "as": "total" },
+      { "fn": "avg", "column": "balance", "as": "average" },
+      { "fn": "min", "column": "balance", "as": "lowest" },
+      { "fn": "max", "column": "balance", "as": "highest" },
+      { "fn": "count", "as": "n" }
+    ],
+    "where": { "status": "active" }
+  }'</code></pre></div>
+<div class="code"><span class="lbl">200 OK · verified</span><pre><code>{ "success": true, "data": [
+  { "total": "200.50", "average": "100.250000", "lowest": "80.00", "highest": "120.50", "n": 2 }
+] }</code></pre></div>
+<div class="note"><b>Types</b> Decimal aggregates return as JSON <b>strings</b> (to keep precision); counts return as <b>numbers</b>. That's exactly what the server sent.</div>
+
+<h4>3 · CONCAT with bound literals</h4>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s -X POST "$BASE/clients/query" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "select": [ { "concat": ["name", { "literal": " <" }, "email", { "literal": ">" }], "as": "label" } ],
+    "where": { "email": "ann@example.com" }
+  }'</code></pre></div>
+<div class="code"><span class="lbl">200 OK · verified</span><pre><code>{ "success": true, "data": [ { "label": "Ann Lee &lt;ann@example.com&gt;" } ] }</code></pre></div>
+
+<h4>4 · DISTINCT</h4>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s -X POST "$BASE/clients/query" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{ "select": [ { "column": "status" } ], "distinct": true, "order": "status" }'</code></pre></div>
+<div class="code"><span class="lbl">200 OK · verified</span><pre><code>{ "success": true, "data": [ { "status": "active" }, { "status": "inactive" } ] }</code></pre></div>
+
+<h4>5 · HAVING — filter the groups</h4>
+<p>Keep only groups with more than one member:</p>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s -X POST "$BASE/clients/query" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "select":   [ { "column": "status" }, { "fn": "count", "as": "total" } ],
+    "group_by": ["status"],
+    "having":   { "total": { "op": ">", "value": 1 } }
+  }'</code></pre></div>
+<div class="code"><span class="lbl">200 OK · verified</span><pre><code>{ "success": true, "data": [ { "status": "active", "total": 2 } ] }</code></pre></div>
+
+<h4>6 · Injection attempts are rejected</h4>
+<p>A malicious column name never reaches SQL — it fails identifier validation:</p>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s -X POST "$BASE/clients/query" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{ "select": [ { "column": "id); DROP TABLE clients;--" } ] }'</code></pre></div>
+<div class="code"><span class="lbl">422 · verified (nothing runs)</span><pre><code>{ "success": false, "error": { "code": "validation_failed", "message": "Validation failed",
+  "details": { "errors": { "column": "Unknown column: id); DROP TABLE clients;--" } } } }</code></pre></div>
+
+<h4>The query spec</h4>
+<table>
+<tr><th>Field</th><th>Shape</th><th>Notes</th></tr>
+<tr><td><code>select</code> <b>(required)</b></td><td>array of items</td><td>each item is one of the three below</td></tr>
+<tr><td>· column</td><td><code>{ "column": "x", "as": "…" }</code></td><td>a plain column</td></tr>
+<tr><td>· aggregate</td><td><code>{ "fn": "count|sum|avg|min|max|group_concat", "column": "x", "distinct": false, "separator": ", ", "as": "…" }</code></td><td><code>count</code> without a column → <code>COUNT(*)</code></td></tr>
+<tr><td>· concat</td><td><code>{ "concat": ["col", {"literal":"txt"}, …], "as": "…" }</code></td><td>literals are bound params</td></tr>
+<tr><td><code>where</code></td><td><code>{ "col": value }</code></td><td>equality (AND-ed)</td></tr>
+<tr><td><code>group_by</code></td><td><code>["col", …]</code></td><td>whitelisted columns</td></tr>
+<tr><td><code>having</code></td><td><code>{ "alias": { "op": "&gt;", "value": 5 } }</code></td><td>op ∈ <code>= != &lt;&gt; &gt; &gt;= &lt; &lt;=</code>; targets an alias or column</td></tr>
+<tr><td><code>order</code></td><td><code>"alias:desc"</code></td><td>by alias or column</td></tr>
+<tr><td><code>limit</code>, <code>offset</code>, <code>distinct</code></td><td>int / int / bool</td><td></td></tr>
+</table>
+
+<h2 id="crud-upsert">CRUD · Upsert — “if exists then update” <span class="m-post">POST</span></h2>
+<p>Insert a row, or update the existing one on a duplicate key, in a single atomic statement (<code>INSERT … ON DUPLICATE KEY UPDATE</code>). The table needs a <b>PRIMARY</b> or <b>UNIQUE</b> key for the conflict to be detected — here, <code>email</code> is unique.</p>
+<h4>1 · First call — the email is new, so it inserts</h4>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s -X POST "$BASE/clients/upsert" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{ "values": { "name": "Zoe", "email": "zoe@example.com", "status": "active", "balance": 10 } }'</code></pre></div>
+<div class="code"><span class="lbl">201 Created · verified</span><pre><code>{ "success": true, "data": {
+  "action": "inserted", "id": 4,
+  "record": { "id": 4, "name": "Zoe", "email": "zoe@example.com",
+              "status": "active", "balance": "10.00", "created_at": "2026-07-05 20:20:24" }
+} }</code></pre></div>
+
+<h4>2 · Same email again — now it updates in place (same id)</h4>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s -X POST "$BASE/clients/upsert" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{ "values": { "name": "Zoe Q", "email": "zoe@example.com", "status": "vip", "balance": 50 } }'</code></pre></div>
+<div class="code"><span class="lbl">200 OK · verified</span><pre><code>{ "success": true, "data": {
+  "action": "updated", "id": 4,
+  "record": { "id": 4, "name": "Zoe Q", "email": "zoe@example.com",
+              "status": "vip", "balance": "50.00", "created_at": "2026-07-05 20:20:24" }
+} }</code></pre></div>
+
+<h4>3 · Only change some columns on conflict — the <code>update</code> list</h4>
+<p>Here only <code>status</code> is overwritten on a duplicate; <code>name</code> is left as it was (verified):</p>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s -X POST "$BASE/clients/upsert" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{ "values": { "name": "ignored", "email": "zoe@example.com", "status": "active" },
+        "update": ["status"] }'</code></pre></div>
+<table>
+<tr><th><code>action</code></th><th>HTTP</th><th>Meaning</th></tr>
+<tr><td><code>inserted</code></td><td><span class="pill">201</span></td><td>no matching key — a new row was created</td></tr>
+<tr><td><code>updated</code></td><td><span class="pill">200</span></td><td>key existed — the row was updated in place (same id)</td></tr>
+<tr><td><code>unchanged</code></td><td><span class="pill">200</span></td><td>key existed and values were already identical</td></tr>
+</table>
 
 <h2 id="crud-errors">CRUD · Error responses</h2>
 <table>
@@ -504,6 +639,8 @@ location /billing/ { rewrite ^/billing/(.*) /$1 break; proxy_pass http://127.0.0
 <tr><td><code>POST /v2/{resource}</code></td><td>Create</td><td>token</td></tr>
 <tr><td><code>PUT|PATCH /v2/{resource}/{id}</code></td><td>Update</td><td>token</td></tr>
 <tr><td><code>DELETE /v2/{resource}/{id}</code></td><td>Delete</td><td>token</td></tr>
+<tr><td><code>POST /v2/{resource}/query</code></td><td>Advanced SELECT — GROUP BY / aggregates / CONCAT</td><td>token</td></tr>
+<tr><td><code>POST /v2/{resource}/upsert</code></td><td>Insert or update-if-exists</td><td>token</td></tr>
 <tr><td><code>GET /v2/stream/{resource}</code></td><td>NDJSON bulk export</td><td>token</td></tr>
 <tr><td><code>GET /v2/capabilities</code></td><td>This service's function manifest</td><td>token</td></tr>
 <tr><td><code>GET /v2/_debug</code></td><td>Live debug dashboard (when <code>debug.enabled</code>)</td><td>shell public</td></tr>

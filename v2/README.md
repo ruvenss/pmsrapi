@@ -138,6 +138,8 @@ Every route is mounted under `/v2` and (except `/health`) requires
 | `POST /v2/{resource}` | Create (JSON body = column ⇒ value) |
 | `PUT` / `PATCH /v2/{resource}/{id}` | Update |
 | `DELETE /v2/{resource}/{id}` | Delete |
+| `POST /v2/{resource}/query` | Advanced SELECT — GROUP BY, aggregates, `GROUP_CONCAT`, `CONCAT`, HAVING |
+| `POST /v2/{resource}/upsert` | Insert or update-if-exists (`ON DUPLICATE KEY UPDATE`) |
 
 **List query params:** `?page=`, `?per_page=` (max 200), `?order=column` or
 `?order=column:desc`, and any column name as an equality filter

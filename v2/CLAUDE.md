@@ -77,6 +77,12 @@ config over a new controller unless you need custom behavior.
   `assertColumns()` before trusting any client-supplied identifier.
 - `Repository` returns plain associative arrays (rows), not entities — keep it
   that way for now; the CRUD contract is array-in/array-out.
+- Advanced reads (GROUP BY / aggregates / GROUP_CONCAT / CONCAT / HAVING /
+  DISTINCT) go through `AggregateQuery` — a **structured spec, never raw SQL** —
+  at `POST /{resource}/query`. Upsert ("if exists then update") is
+  `POST /{resource}/upsert` via `INSERT … ON DUPLICATE KEY UPDATE`. Same
+  discipline as everything else: whitelist identifiers via `Schema`, bind every
+  value, allowlist the aggregate functions/operators. Do NOT add raw-SQL passthrough.
 
 ## Debug dashboard (`Debug/`)
 

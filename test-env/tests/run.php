@@ -75,6 +75,17 @@ $redis->connect($cfg['redis']['host'], (int) $cfg['redis']['port']);
 $redis->flushDB();
 note('flushed Redis');
 
+// Reset the clients table to the seed so the suite is re-runnable and the
+// aggregate numbers are deterministic (TRUNCATE restarts AUTO_INCREMENT at 1).
+$db = new mysqli($cfg['db']['host'], $cfg['db']['username'], $cfg['db']['password'], $cfg['db']['name'], (int) $cfg['db']['port']);
+$db->query('TRUNCATE TABLE clients');
+$db->query("INSERT INTO clients (name, email, status, balance) VALUES
+  ('Ann Lee','ann@example.com','active',120.50),
+  ('Bob Kim','bob@example.com','active',80.00),
+  ('Cara Ng','cara@example.com','inactive',45.25)");
+$db->close();
+note('reset clients table to seed (3 rows)');
+
 // ── Health & info ────────────────────────────────────────────────────────────
 section('Health & info (DB + Redis connectivity)');
 $r = http('GET', '/health');
@@ -83,6 +94,82 @@ eq('up', $r['body']['data']['database'] ?? null, 'database probe = up');
 eq('up', $r['body']['data']['redis'] ?? null, 'redis probe = up');
 $r = http('GET', '/info', null, $TOKEN);
 ok(($r['body']['data']['database']['connected'] ?? false) === true, 'info: MySQL connected (persistent p: conn)');
+
+// ── Advanced SELECT — runs FIRST, on the pristine 3-row seed, so the numbers
+//    below are deterministic and exactly what the docs show. ──────────────────
+section('Advanced SELECT: GROUP BY + COUNT + GROUP_CONCAT');
+$r = http('POST', '/clients/query', [
+    'select' => [
+        ['column' => 'status'],
+        ['fn' => 'count', 'as' => 'total'],
+        ['fn' => 'group_concat', 'column' => 'name', 'separator' => ', ', 'as' => 'names'],
+    ],
+    'group_by' => ['status'],
+    'order' => 'total:desc',
+], $TOKEN);
+eq(200, $r['code'], 'POST /clients/query = 200');
+$g = $r['body']['data'] ?? [];
+eq(2, count($g), 'two status groups');
+eq('active', $g[0]['status'] ?? null, 'order total:desc -> active first');
+eq(2, (int) ($g[0]['total'] ?? 0), 'active COUNT = 2');
+ok(str_contains((string) ($g[0]['names'] ?? ''), 'Ann Lee') && str_contains((string) ($g[0]['names'] ?? ''), 'Bob Kim'),
+    'GROUP_CONCAT lists the active names');
+eq(1, (int) ($g[1]['total'] ?? 0), 'inactive COUNT = 1');
+
+section('Advanced SELECT: SUM / AVG / MIN / MAX');
+$r = http('POST', '/clients/query', [
+    'select' => [
+        ['fn' => 'sum', 'column' => 'balance', 'as' => 'total'],
+        ['fn' => 'avg', 'column' => 'balance', 'as' => 'average'],
+        ['fn' => 'min', 'column' => 'balance', 'as' => 'lowest'],
+        ['fn' => 'max', 'column' => 'balance', 'as' => 'highest'],
+        ['fn' => 'count', 'as' => 'n'],
+    ],
+    'where' => ['status' => 'active'],
+], $TOKEN);
+$a = $r['body']['data'][0] ?? [];
+eq(200.5, (float) ($a['total'] ?? 0), 'SUM(balance) active = 200.50');
+eq(100.25, (float) ($a['average'] ?? 0), 'AVG(balance) active = 100.25');
+eq(80.0, (float) ($a['lowest'] ?? 0), 'MIN(balance) = 80.00');
+eq(120.5, (float) ($a['highest'] ?? 0), 'MAX(balance) = 120.50');
+eq(2, (int) ($a['n'] ?? 0), 'COUNT(*) active = 2');
+
+section('Advanced SELECT: CONCAT, DISTINCT, HAVING');
+$r = http('POST', '/clients/query', [
+    'select' => [['concat' => ['name', ['literal' => ' <'], 'email', ['literal' => '>']], 'as' => 'label']],
+    'where' => ['email' => 'ann@example.com'],
+], $TOKEN);
+eq('Ann Lee <ann@example.com>', $r['body']['data'][0]['label'] ?? null, 'CONCAT with bound literals');
+$r = http('POST', '/clients/query', ['select' => [['column' => 'status']], 'distinct' => true, 'order' => 'status'], $TOKEN);
+eq(['active', 'inactive'], array_column($r['body']['data'] ?? [], 'status'), 'DISTINCT status = [active, inactive]');
+$r = http('POST', '/clients/query', [
+    'select' => [['column' => 'status'], ['fn' => 'count', 'as' => 'total']],
+    'group_by' => ['status'], 'having' => ['total' => ['op' => '>', 'value' => 1]],
+], $TOKEN);
+eq(1, count($r['body']['data'] ?? []), 'HAVING total>1 keeps only the active group');
+
+section('Advanced SELECT: injection is rejected (identifier whitelist)');
+eq(422, http('POST', '/clients/query', ['select' => [['column' => 'id); DROP TABLE clients;--']]], $TOKEN)['code'],
+    'illegal column rejected (422)');
+eq(422, http('POST', '/clients/query', ['select' => [['fn' => 'evil', 'column' => 'balance']]], $TOKEN)['code'],
+    'illegal aggregate fn rejected (422)');
+
+// ── Upsert (IF EXISTS THEN UPDATE) ───────────────────────────────────────────
+section('Upsert: INSERT … ON DUPLICATE KEY UPDATE');
+$upEmail = 'upsert-' . random_int(1000, 999999) . '@example.com';
+$r = http('POST', '/clients/upsert', ['values' => ['name' => 'Upsert One', 'email' => $upEmail, 'status' => 'active', 'balance' => 10]], $TOKEN);
+eq(201, $r['code'], 'first upsert inserts (201)');
+eq('inserted', $r['body']['data']['action'] ?? null, 'action = inserted');
+$upId = $r['body']['data']['id'] ?? 0;
+ok($upId > 0, "new row id = {$upId}");
+$r = http('POST', '/clients/upsert', ['values' => ['name' => 'Upsert Two', 'email' => $upEmail, 'status' => 'inactive', 'balance' => 99]], $TOKEN);
+eq(200, $r['code'], 'second upsert (same email) updates (200)');
+eq('updated', $r['body']['data']['action'] ?? null, 'action = updated');
+eq('Upsert Two', $r['body']['data']['record']['name'] ?? null, 'row updated in place');
+eq($upId, $r['body']['data']['id'] ?? -1, 'update kept the same id');
+$r = http('POST', '/clients/upsert', ['values' => ['name' => 'Ignored', 'email' => $upEmail, 'status' => 'active'], 'update' => ['status']], $TOKEN);
+eq('active', $r['body']['data']['record']['status'] ?? null, 'update subset changed status');
+eq('Upsert Two', $r['body']['data']['record']['name'] ?? null, 'update subset left name untouched');
 
 // ── CRUD ─────────────────────────────────────────────────────────────────────
 section('CRUD over mysqli prepared statements + schema whitelist');
