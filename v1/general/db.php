@@ -223,7 +223,7 @@ function sqlSelectRow($table, $fields, $where, $orderby = ""): array
                 $sqlquery .= " WHERE ($where)";
             }
             if (!empty($orderby)) {
-                $sqlquery .= " ORDER BY `$orderby`";
+                $sqlquery .= " ORDER BY $orderby";
             }
             $sqlquery .= " LIMIT 1";
             $result = dbconn->query($sqlquery);
@@ -233,7 +233,7 @@ function sqlSelectRow($table, $fields, $where, $orderby = ""): array
         }
         return [];
     } else {
-        http_response(500, ["error" => "Internal Server Error"]);
+        http_response(500, ["error" => "Internal Server Error", "error_code" => "dbconn_not_defined"]);
     }
 }
 /**

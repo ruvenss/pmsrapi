@@ -5,8 +5,8 @@
  * This script will create a systemd service for the Microservice
  * @category MicroService
  * @package  MicroService_Restful_API
- * @version  1.0.0
- * @since    1.0.0
+ * @version  0.0.27
+ * @since    0.0.27
  * @link   https://github.com/ruvenss/pmsrapi
  * IF YOU ADD YOUR CODE HERE IT WILL BE OVERWRITTEN ON THE NEXT UPDATE
  */

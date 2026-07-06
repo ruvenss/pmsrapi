@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  PMSRAPI v2 — DEV / TEST stack.  ⚠ NEVER SHIP THIS TO PRODUCTION.
+#  Brings up MariaDB + Redis + the v2 app so the test suite can exercise the
+#  Redis/DB paths that can't be tested without them.
+# ─────────────────────────────────────────────────────────────────────────────
+name: pmsrapi-v2-test
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: pmsrapi_test
+      MARIADB_USER: app
+      MARIADB_PASSWORD: app
+    volumes:
+      - ./seed.sql:/docker-entrypoint-initdb.d/10-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  app:
+    build:
+      context: ..
+      dockerfile: test-env/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      # Bind-mount the repo so edits are picked up without rebuilding.
+      - ../:/opt/pmsrapi
+    ports:
+      - "8080:8080"
+    # Default: serve for interactive poking. Run the suite with:
+    #   docker compose run --rm app test
+    command: ["serve"]

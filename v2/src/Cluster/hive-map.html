@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>PMSRAPI · Hive Map</title>
+<!-- VueFlow theme (dev-only tool: loaded from CDN; needs internet) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vue-flow/core@1/dist/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vue-flow/core@1/dist/theme-default.css">
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--border:#2a3240;--text:#e6edf3;--muted:#8b98a5;--red:#f85149;--blue:#3b82f6}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:flex;flex-direction:column}
+  header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--border)}
+  .brand{font-weight:700}
+  .brand small{color:var(--muted);font-weight:400;margin-left:6px}
+  .spacer{flex:1}
+  button,input{font:inherit;color:var(--text);background:#1c2330;border:1px solid var(--border);border-radius:7px;padding:6px 10px;cursor:pointer}
+  button:hover{border-color:var(--blue)}
+  input{cursor:text;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .chip{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;padding:3px 9px;border-radius:999px;background:#1c2330;border:1px solid var(--border)}
+  .chip.bad{border-color:var(--red);color:#ffb4ab}
+  #app{flex:1;min-height:0}
+  .vue-flow{height:100%}
+  #fallback{padding:16px;overflow:auto}
+  .svc{margin:0 0 14px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .svc h3{margin:0;padding:8px 12px;background:#1f6feb22;border-bottom:1px solid var(--border);font-size:14px}
+  .svc ul{margin:0;padding:8px 12px 12px;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+  .svc li{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:6px}
+  .svc li.bad{border-color:var(--red);color:#ffb4ab}
+  .warn{color:var(--red)}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">PMSRAPI <small>Hive Map</small></div>
+  <span class="chip" id="svcCount">— services</span>
+  <span class="chip bad hidden" id="colCount">0 collisions</span>
+  <div class="spacer"></div>
+  <input id="token" type="password" placeholder="Bearer token" autocomplete="off">
+  <button id="connect">Connect</button>
+  <button id="refresh" title="Poll every worker's /capabilities">↻ Refresh</button>
+</header>
+<div id="app"></div>
+<div id="fallback" class="hidden"></div>
+
+<script type="module">
+const el = id => document.getElementById(id);
+const BASE = location.pathname.replace(/\/+$/,"");     // /v2/hive
+let token = localStorage.getItem("pmsrapi_hive_token") || "";
+let app = null;
+el("token").value = token;
+
+el("connect").onclick = () => { token = el("token").value.trim(); localStorage.setItem("pmsrapi_hive_token", token); render(); };
+el("refresh").onclick = async () => { try { await api("/refresh", {method:"POST"}); } catch(e){} render(); };
+
+async function api(path, opts={}){
+  opts.headers = Object.assign({ "Authorization": token ? "Bearer "+token : "" }, opts.headers||{});
+  const r = await fetch(BASE+path, opts);
+  if (r.status === 401) throw new Error("unauthorized");
+  return (await r.json()).data;
+}
+
+function counts(map){
+  el("svcCount").textContent = (map.services||[]).length + " services";
+  const col = (map.collisions||[]).length;
+  el("colCount").textContent = col + " collision" + (col===1?"":"s");
+  el("colCount").classList.toggle("hidden", col===0);
+}
+
+function buildGraph(map){
+  const nodes = [], edges = [];
+  const collide = new Set((map.collisions||[]).map(c=>c.function));
+  (map.services||[]).forEach((s,i)=>{
+    nodes.push({ id:"svc:"+s.name, position:{x:0,y:i*150},
+      data:{ label:(s.role==="hive_mind"?"🧠 ":"")+s.name+"\n"+(s.functions?.length||0)+" fns · "+(s.version||"") },
+      style:{ background:"#1f6feb", color:"#fff", border:"1px solid #388bfd", borderRadius:"10px", padding:"8px 12px", fontWeight:"600", whiteSpace:"pre", width:"150px" } });
+  });
+  Object.keys(map.functions||{}).forEach((name,i)=>{
+    const bad = collide.has(name);
+    nodes.push({ id:"fn:"+name, position:{x:460,y:i*72},
+      data:{ label:name }, style:{ background:bad?"#5a1e1e":"#161b22", color:bad?"#ffb4ab":"#e6edf3",
+        border:"1px solid "+(bad?"#f85149":"#2a3240"), borderRadius:"8px", padding:"6px 10px" } });
+    (map.functions[name]||[]).forEach(owner=>{
+      edges.push({ id:"e:"+owner+":"+name, source:"svc:"+owner, target:"fn:"+name,
+        animated:bad, style:{ stroke: bad?"#f85149":"#3b82f6" } });
+    });
+  });
+  return { nodes, edges };
+}
+
+function fallback(map, note){
+  el("app").classList.add("hidden");
+  const f = el("fallback"); f.classList.remove("hidden");
+  const collide = new Set((map.collisions||[]).map(c=>c.function));
+  let html = note ? '<p class="warn">Graph view unavailable ('+note+') — showing the map as a list.</p>' : "";
+  if ((map.collisions||[]).length) {
+    html += '<div class="svc"><h3 class="warn">⚠ Duplicate functions</h3><ul>' +
+      map.collisions.map(c=>'<li class="bad">'+c.function+' → '+c.owners.join(", ")+'</li>').join("") + '</ul></div>';
+  }
+  (map.services||[]).forEach(s=>{
+    html += '<div class="svc"><h3>'+(s.role==="hive_mind"?"🧠 ":"")+s.name+' <small style="color:#8b98a5">'+(s.version||"")+'</small></h3><ul>' +
+      (s.functions||[]).map(fn=>'<li class="'+(collide.has(fn)?"bad":"")+'">'+fn+'</li>').join("") + '</ul></div>';
+  });
+  f.innerHTML = html || "<p>No services registered yet. Hit ↻ Refresh (the Hive polls each universe node's /capabilities).</p>";
+}
+
+async function render(){
+  let map;
+  try { map = await api("/map"); }
+  catch(e){ el("token").focus(); fallback({services:[],functions:{},collisions:[]}, "enter a valid token"); return; }
+  counts(map);
+  try {
+    const { createApp, h } = await import("https://esm.sh/vue@3");
+    const { VueFlow } = await import("https://esm.sh/@vue-flow/core@1?deps=vue@3");
+    const { nodes, edges } = buildGraph(map);
+    el("fallback").classList.add("hidden"); el("app").classList.remove("hidden");
+    if (app) app.unmount();
+    app = createApp({ render: () => h(VueFlow, { nodes, edges, fitViewOnInit:true, minZoom:0.2 }) });
+    app.mount("#app");
+  } catch(e){ fallback(map, "VueFlow failed to load"); }
+}
+
+render();
+</script>
+</body>
+</html>

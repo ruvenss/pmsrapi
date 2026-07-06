@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "php-best-practices": {
+      "source": "asyrafhussin/agent-skills",
+      "sourceType": "github",
+      "computedHash": "1b25a60572ddd8b206eaf68b067cde70a9d002df572de8fefda703532cecfdad"
+    }
+  }
+}
