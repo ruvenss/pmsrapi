@@ -124,6 +124,27 @@ final class Config
     }
 
     /**
+     * Absolute path to the runtime-managed webhook registry JSON.
+     *
+     * This is a SEPARATE, writable file — never the secret config. When
+     * `webhooks_path` is unset in the public config, it is derived beside the
+     * secret config as "<service>.webhooks.json", keeping writable state out of
+     * the code tree (see .claude/rules/sec-writable-state-outside-code).
+     */
+    public function webhooksPath(): string
+    {
+        $configured = $this->public('webhooks_path');
+        if (is_string($configured) && $configured !== '') {
+            return $configured;
+        }
+
+        $secretsPath = (string) $this->public('secrets_path', '');
+        $dir = $secretsPath !== '' ? dirname($secretsPath) : sys_get_temp_dir();
+
+        return $dir . '/' . $this->name() . '.webhooks.json';
+    }
+
+    /**
      * Resource definitions that drive the generic CRUD controller.
      * Read from the secret JSON so operators can expose tables without code.
      *
