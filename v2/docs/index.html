@@ -90,6 +90,11 @@
     <li><a href="#crud-aggregate">Advanced SELECT / GROUP BY</a></li>
     <li><a href="#crud-upsert">Upsert (if exists → update)</a></li>
     <li><a href="#crud-errors">Error responses</a></li>
+    <div class="grp">Plugins</div>
+    <li><a href="#plugins-concepts">What &amp; why</a></li>
+    <li><a href="#plugins-quickstart">Create one (wizard)</a></li>
+    <li><a href="#plugins-anatomy">Anatomy &amp; contract</a></li>
+    <li><a href="#plugins-rules">Rules &amp; governance</a></li>
     <div class="grp">Multiple microservices</div>
     <li><a href="#multi-concepts">Concepts</a></li>
     <li><a href="#multi-call">Call another service</a></li>
@@ -410,6 +415,99 @@ INSERT INTO clients (name,email,status,balance) VALUES
 <div class="code"><span class="lbl">bash — see a 401</span><pre><code>curl -s "$BASE/clients"                     # no Authorization header</code></pre></div>
 <div class="code"><span class="lbl">json</span><pre><code>{ "success": false, "error": { "code": "unauthorized",
   "message": "Missing or malformed Authorization: Bearer header" } }</code></pre></div>
+
+<hr>
+
+<!-- ─────────────── PLUGINS ─────────────── -->
+<h2 id="plugins-concepts">Plugins · What &amp; why</h2>
+<p>A <b>plugin</b> is a self-contained folder under <code>v2/plugins/</code> that adds your own controllers, models and routes to a running service — <b>without editing a single core file</b> (no <code>bootstrap.php</code>, no <code>routes.php</code>, nothing under <code>src/</code>). Two developers can each own a plugin in the same service and never step on each other: every plugin gets its own namespace and its own URL prefix.</p>
+<div class="note warn"><b>In-process, by design</b> A plugin runs inside this service's process — a fatal error in a plugin takes the service down. It's a code-organisation tool, not a sandbox. If you need true isolation, split the work into a separate microservice (see <a href="#multi-concepts">Multiple microservices</a>).</div>
+<p>The shipped <code>Example</code> plugin proves the wiring — it's live in the test env right now:</p>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s "$BASE/example/hello/World" -H "Authorization: Bearer $TOKEN"</code></pre></div>
+<div class="code"><span class="lbl">200 OK</span><pre><code>{ "success": true, "data": { "greeting": "Hello, World!", "from": "example plugin" } }</code></pre></div>
+<p>Plugin routes ride the <b>same pipeline</b> as core routes, so they're behind bearer auth and rate limiting automatically — no extra work.</p>
+
+<h2 id="plugins-quickstart">Plugins · Create one (wizard)</h2>
+<p>A bash wizard scaffolds a complete, working plugin. Run it from the repo root and answer a couple of prompts:</p>
+<div class="code"><span class="lbl">bash</span><pre><code>bash v2/plugin.sh                # interactive: create a plugin
+bash v2/plugin.sh list           # what's installed + enabled
+bash v2/plugin.sh check Billing  # lint &amp; validate one plugin
+bash v2/plugin.sh remove Billing # delete one (asks to confirm)</code></pre></div>
+<ol class="steps">
+  <li>Run <code>bash v2/plugin.sh</code> and enter a name (e.g. <code>Billing</code>).</li>
+  <li>Optionally include a database example (it injects the shared core <code>Repository</code>).</li>
+  <li>The wizard writes the files, lints them, and prints the exact <code>curl</code> to try.</li>
+</ol>
+<p>The generated plugin answers immediately at its own prefix — nothing to register:</p>
+<div class="code"><span class="lbl">bash</span><pre><code>curl -s "$BASE/billing/ping" -H "Authorization: Bearer $TOKEN"</code></pre></div>
+<div class="code"><span class="lbl">200 OK</span><pre><code>{ "success": true, "data": { "plugin": "billing", "status": "ok" } }</code></pre></div>
+
+<h2 id="plugins-anatomy">Plugins · Anatomy &amp; the contract</h2>
+<p>Discovery is by convention: a directory <code>Billing/</code> must define the entry class <code>Plugins\Billing\BillingPlugin</code> at <code>src/BillingPlugin.php</code>.</p>
+<div class="code"><span class="lbl">v2/plugins/Billing/</span><pre><code>plugin.json                 # metadata + "enabled" flag
+src/                        # autoloaded as  Plugins\Billing\…
+  BillingPlugin.php         # REQUIRED entry class
+  Controllers/
+    InvoiceController.php
+  Models/  Support/         # anything you like
+assets/                     # read-only static files (optional)
+README.md</code></pre></div>
+<p>The entry class has two hooks and takes <b>no constructor arguments</b>:</p>
+<div class="code"><span class="lbl">php — src/BillingPlugin.php</span><pre><code>&lt;?php
+declare(strict_types=1);
+
+namespace Plugins\Billing;
+
+use Plugins\Billing\Controllers\InvoiceController;
+use Pmsrapi\V2\Core\Container;
+use Pmsrapi\V2\Database\Repository;
+use Pmsrapi\V2\Http\Request;
+use Pmsrapi\V2\Http\Response;
+use Pmsrapi\V2\Plugin\AbstractPlugin;
+use Pmsrapi\V2\Plugin\PluginRegistrar;
+use Pmsrapi\V2\Plugin\PluginRouter;
+
+final class BillingPlugin extends AbstractPlugin
+{
+    // 1) Add YOUR services. Inject core ones (Repository, …) via $c —
+    //    never open your own DB/Redis handle.
+    public function register(PluginRegistrar $r): void
+    {
+        $r->singleton(InvoiceController::class,
+            static fn(Container $c): InvoiceController
+                =&gt; new InvoiceController($c->get(Repository::class)));
+    }
+
+    // 2) Add routes. Auto-prefixed with the slug → served at /v2/billing/…
+    public function routes(PluginRouter $router, Container $c): void
+    {
+        $router->get('/invoices/{id}', static fn(Request $req, array $p): Response
+            =&gt; $c->get(InvoiceController::class)->show($p['id']));
+    }
+}</code></pre></div>
+<div class="note"><b>The slug is your URL namespace</b> Every route is prefixed with the plugin's slug (its lowercased directory name), so <code>Billing</code>'s <code>get('/invoices')</code> is served at <code>GET /v2/billing/invoices</code>. A slug that clashes with a core prefix (<code>info</code>, <code>health</code>, <code>webhooks</code>, <code>stream</code>, <code>hive</code>, …) or a configured resource is rejected at boot.</div>
+<div class="code"><span class="lbl">json — plugin.json (all fields optional)</span><pre><code>{
+  "name": "Billing",
+  "description": "Invoicing endpoints.",
+  "version": "1.0.0",
+  "author": "You",
+  "enabled": true,
+  "dependencies": []
+}</code></pre></div>
+<p>Set <code>"enabled": false</code> to switch a plugin off without deleting it.</p>
+
+<h2 id="plugins-rules">Plugins · Rules &amp; governance</h2>
+<p>Plugins follow the same discipline as the core — these are enforced or checked, not just suggested:</p>
+<table>
+<tr><th>Rule</th><th>How it holds</th></tr>
+<tr><td>Database access only via the core</td><td>Inject <code>Connection</code>/<code>Repository</code> — you get prepared statements + schema-whitelisting for free. Never open your own handle.</td></tr>
+<tr><td>Add services, never replace</td><td><code>PluginRegistrar</code> throws at boot if you register an id the core (or another plugin) already owns.</td></tr>
+<tr><td>Own URL namespace</td><td>Routes auto-prefixed with the slug; core/resource collisions fail loudly at boot.</td></tr>
+<tr><td>Auth &amp; rate-limit inherited</td><td>Plugin routes ride the same Kernel pipeline as core routes.</td></tr>
+<tr><td>No writable state in the code tree</td><td>Caches → Redis, logs → <code>local_log.path</code> — same as the core.</td></tr>
+<tr><td>PHP 8.3, strict types, typed everything</td><td>Same rules as <code>v2/src/</code>; validate with <code>bash v2/plugin.sh check &lt;Name&gt;</code>.</td></tr>
+</table>
+<div class="note tip"><b>Two hooks, then frozen</b> The core integrates plugins in exactly two lines — <code>bootstrap.php</code> registers their services and <code>routes.php</code> mounts their routes. That footprint never grows: the core stays frozen and auto-updatable, and <code>v2/plugins/</code> is yours and survives updates. Full reference: <code>v2/plugins/README.md</code>.</div>
 
 <hr>
 
