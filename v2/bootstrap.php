@@ -37,6 +37,7 @@ use Pmsrapi\V2\Http\Controllers\SystemController;
 use Pmsrapi\V2\Http\Controllers\WebhookController;
 use Pmsrapi\V2\Http\Middleware\AuthMiddleware;
 use Pmsrapi\V2\Http\Middleware\RateLimitMiddleware;
+use Pmsrapi\V2\Plugin\PluginManager;
 use Pmsrapi\V2\Queue\RedisQueue;
 use Pmsrapi\V2\Queue\WebhookDispatcher;
 use Pmsrapi\V2\Security\TokenStore;
@@ -180,5 +181,12 @@ $container->singleton(StreamController::class, static fn(Container $c): StreamCo
 $container->singleton(HiveController::class, static fn(Container $c): HiveController => new HiveController(
     $c->get(HiveRegistry::class),
 ));
+
+// --- Plugins: discover developer extensions under v2/plugins/ and register
+// their services. This is the ONLY hook needed here — the core stays frozen
+// from now on; a plugin never edits bootstrap.php. See v2/plugins/README.md.
+$plugins = new PluginManager(V2_BASE . '/plugins', $autoloader, $container->get(Logger::class));
+$plugins->registerServices($container);
+$container->instance(PluginManager::class, $plugins);
 
 return $container;

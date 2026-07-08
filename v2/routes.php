@@ -27,6 +27,7 @@ use Pmsrapi\V2\Http\HttpMethod;
 use Pmsrapi\V2\Http\Request;
 use Pmsrapi\V2\Http\ResourceDefinition;
 use Pmsrapi\V2\Http\Response;
+use Pmsrapi\V2\Plugin\PluginManager;
 
 /** @var Container $container */
 $router = new Router();
@@ -133,7 +134,9 @@ if ($config->isHiveMind()) {
         => $container->get(HiveController::class)->export($r, $p['service']));
 }
 
-// --- Add your own custom routes here (they survive core updates) ---
-// $router->get('/forecast/{city}', static fn(Request $r, array $p): Response => ...);
+// --- Plugins: mount every enabled plugin's routes under its own slug prefix
+// (GET /v2/<plugin>/…). Developers add endpoints INSIDE a plugin, never here;
+// this one line is the whole integration. See v2/plugins/README.md.
+$container->get(PluginManager::class)->registerRoutes($router, $container);
 
 return $router;
