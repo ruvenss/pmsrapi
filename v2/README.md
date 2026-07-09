@@ -112,7 +112,9 @@ v2 splits config exactly like v1:
     }
   },
 
-  // Webhook subscribers (delivered by the CLI worker, HMAC-signed):
+  // Legacy fallback webhook subscribers (exact event match), used ONLY until
+  // the managed registry file is first written. Prefer POST /v2/webhooks — see
+  // the Webhooks section:
   "webhooks": [
     { "event": "users.created", "url": "https://example.com/hook", "secret": "shh" }
   ]
@@ -140,6 +142,13 @@ Every route is mounted under `/v2` and (except `/health`) requires
 | `DELETE /v2/{resource}/{id}` | Delete |
 | `POST /v2/{resource}/query` | Advanced SELECT — GROUP BY, aggregates, `GROUP_CONCAT`, `CONCAT`, HAVING |
 | `POST /v2/{resource}/upsert` | Insert or update-if-exists (`ON DUPLICATE KEY UPDATE`) |
+| `GET /v2/webhooks` | List webhook subscriptions (secrets masked) |
+| `GET /v2/webhooks/{id}` | One subscription's details |
+| `POST /v2/webhooks` | Create a subscription |
+| `PUT` / `PATCH /v2/webhooks/{id}` | Update (partial merge) |
+| `DELETE /v2/webhooks/{id}` | Delete a subscription |
+| `POST /v2/webhooks/{id}/enable` / `.../disable` | Enable / disable delivery |
+| `POST /v2/webhooks/rebuild` | Build/rebuild the whole registry from `{ "webhooks": [...] }` |
 
 **List query params:** `?page=`, `?per_page=` (max 200), `?order=column` or
 `?order=column:desc`, and any column name as an equality filter
@@ -175,16 +184,71 @@ key bookkeeping, no race.
 
 ---
 
-## Webhook worker
+## Webhooks
+
+Two halves: a **runtime-managed registry** of subscriptions, and an async
+**worker** that delivers events to them.
+
+### The registry (external JSON, managed over REST)
+
+Subscriptions live in a single JSON file at an **absolute path outside the code
+tree** — `webhooks_path` in [config.php](config.php), or, when left `null`,
+derived beside the secret config as `<service>.webhooks.json`. It is a
+**separate file from the secret config** (which is CLI-baked and never rewritten
+over HTTP) and is never written inside the deployment dir
+([sec-writable-state-outside-code](../.claude/rules/sec-writable-state-outside-code.md)).
+Writes are atomic (temp-file + `rename`) and serialized with a file lock.
+
+Manage it entirely over REST (`Bearer` auth) — no redeploy, no config edit:
+
+```bash
+# Create
+curl -XPOST /v2/webhooks -H 'Authorization: Bearer <t>' -d '{
+  "name": "billing sync",
+  "target": "https://billing.example/hook",
+  "events": ["users.*", "orders.created", "after:recalc_totals"],
+  "secret": "shh",
+  "enabled": true
+}'
+
+curl /v2/webhooks                       # list (secrets masked as has_secret)
+curl /v2/webhooks/wh_ab12…              # details of one
+curl -XPATCH  /v2/webhooks/wh_ab12… -d '{ "enabled": false }'
+curl -XPOST   /v2/webhooks/wh_ab12…/disable
+curl -XDELETE /v2/webhooks/wh_ab12…
+curl -XPOST   /v2/webhooks/rebuild -d '{ "webhooks": [ … ] }'   # replace all
+```
+
+A subscription:
+
+| field | required | meaning |
+|---|---|---|
+| `target` | ✅ | host we POST the event to (must be an `http(s)` URL) |
+| `events` | ✅ | selectors: exact (`users.created`), prefix wildcard (`users.*`), global `*`, or custom-function hooks `before:<fn>` / `after:<fn>` |
+| `secret` | — | when set, deliveries carry `X-Signature: sha256=<hmac>` |
+| `enabled` | — | disabled subscriptions are kept but never delivered to (default `true`) |
+| `name` | — | human label |
+| `allowed_ips` | — | reserved for a future egress allowlist — **accepted and stored, not yet enforced** |
+
+The secret is **never returned** by the API (`has_secret: true/false` instead).
+
+> **Backward compatible:** until the registry file is first written, delivery
+> falls back to the legacy read-only `webhooks` array in the secret config
+> (exact event match). Once you create a subscription via REST, the registry
+> becomes the source of truth.
+
+### The worker (async delivery)
 
 ```bash
 php v2/worker.php          # daemon (systemd Restart=always)
 php v2/worker.php --once   # drain then exit (cron/testing)
 ```
 
-Writes emit `{resource}.created|updated|deleted` events onto the Redis queue;
-the worker delivers each to matching subscribers with an
-`X-Signature: sha256=<hmac>` header. Request latency never waits on subscribers.
+CRUD writes emit `{resource}.created|updated|deleted|upserted` onto the Redis
+queue; custom functions can emit their own events (e.g.
+`$webhooks->emit('after:recalc_totals', [...])`). The worker delivers each to
+every **enabled** subscription whose `events` match, HMAC-signed when a secret
+is set. Request latency never waits on subscribers.
 
 ---
 
@@ -365,10 +429,11 @@ v2/
     Core/            Autoloader, Config, Container, Router, Route, Kernel
     Http/            Request, Response, HttpMethod, Middleware, ResourceDefinition
       Middleware/    AuthMiddleware, RateLimitMiddleware
-      Controllers/   Crud, System, Debug, Capabilities, Stream, Hive (…Controller)
+      Controllers/   Crud, System, Debug, Capabilities, Stream, Hive, Webhook (…Controller)
     Database/        Connection, Schema, Repository   (mysqli prepared statements)
     Cache/           RedisClient, QueryCache, RateLimiter, RateLimitResult
     Queue/           RedisQueue, WebhookDispatcher
+    Webhook/         Webhook (value object), WebhookStore (managed JSON registry)
     Security/        TokenStore
     Cluster/         Role, Capabilities, ServiceClient, HiveRegistry, hive-map.html
     Debug/           DebugRecorder, Redactor, DebugEventType, dashboard.html

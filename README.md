@@ -4,6 +4,50 @@ Yes! Yet another REST API built in PHP.
 
 <img src="https://github.com/ruvenss/pmsrapi/blob/main/documentation/pmsrapi.png?raw=true" style="width: 64px">
 
+## Quick deploy — Ubuntu 24 LAMP (v2)
+
+Stand up the modern **v2** core on a fresh **Ubuntu 24.04** server with a single command. It installs Apache + MariaDB + PHP 8.3 (+ Redis), downloads the framework, creates the database, writes the secret config **outside the web root**, configures an Apache vhost, and leaves a working REST API at `http://<host>/v2/`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ruvenss/pmsrapi/master/install-lamp.sh | sudo bash
+```
+
+Everything is non-interactive with sane defaults. Customise with environment variables (all optional):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ruvenss/pmsrapi/master/install-lamp.sh \
+  | sudo PMS_NAME=weather PMS_PORT=80 PMS_ENV=prod bash
+```
+
+Already cloned the repo? Just run it in place — it deploys the local tree instead of downloading:
+
+```bash
+sudo bash install-lamp.sh
+```
+
+When it finishes it prints your bearer token and ready-to-run tests (the `example` plugin proves it end-to-end):
+
+```bash
+curl -s http://<host>/v2/health
+curl -s -H "Authorization: Bearer <token>" http://<host>/v2/example/hello/World
+```
+
+| Variable | Meaning | Default |
+| --- | --- | --- |
+| `PMS_NAME` | service + database name | `pmsrapi` |
+| `PMS_DIR` | install dir (web root) | `/var/www/$PMS_NAME` |
+| `PMS_REF` | git tag or branch to deploy | `master` |
+| `PMS_PORT` | Apache listen port | `80` |
+| `PMS_ENV` | `dev` / `test` / `stage` / `prod` | `prod` |
+| `PMS_DB_PASS` | database password | generated |
+| `PMS_SERVER_TOKEN` | bearer token | generated |
+| `PMS_WITH_REDIS` | install + use Redis | `yes` |
+| `PMS_WORKER` | install webhook worker service | `yes` |
+
+The secret config lives at `/etc/pmsrapi/<name>.json` (read-only to the web server), writable state at `/var/lib/<name>/`, logs at `/var/log/<name>/` — the code tree itself stays read-only. **Re-running is safe**: an existing token and DB password are preserved. Add tables to the `resources` block of the secret JSON to expose them over REST, or build features as [plugins](v2/plugins/README.md) with `bash v2/plugin.sh`.
+
+> The interactive wizard below (`install.sh`) provisions the original **v1** core behind the PHP built-in server + systemd. Use the one-shot above for a v2 LAMP box.
+
 ## Requierements
 
 - Ubuntu Linux 24.10 or greather

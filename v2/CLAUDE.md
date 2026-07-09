@@ -53,9 +53,10 @@ placeholders (`/users/{id}`) matched one segment at a time.
 
 | Task | Where | Notes |
 |---|---|---|
+| **A developer feature (default)** | a **plugin** under [plugins/](plugins/) — scaffold with `bash v2/plugin.sh` | Own controllers/models/routes, **zero core edits**. See [plugins/README.md](plugins/README.md) and the **Plugins** section below. |
 | Expose a table over REST | `resources` in the **secret JSON** | No code. This is the security whitelist. |
-| Custom endpoint | bottom of [routes.php](routes.php) | `$router->get('/path/{x}', fn($r,$p) => $container->get(Foo::class)->bar(...))` |
-| New service/helper | new class under `src/`, register in [bootstrap.php](bootstrap.php) | Constructor-injected. |
+| Custom endpoint (core-level) | a plugin's `routes()` — or, for core maintainers, [routes.php](routes.php) | Prefer a plugin. Editing routes.php is a core change and is overwritten on update. |
+| New service/helper | a plugin's `register()` — or, for the core itself, a class under `src/` wired in [bootstrap.php](bootstrap.php) | Both constructor-injected. Plugin services can inject core ones; not vice-versa. |
 | Data access | extend [`Database\Repository`](src/Database/Repository.php) | Keep the bound-params + Schema-whitelist discipline. |
 | Side effect on write | `WebhookDispatcher::emit()` or a service the controller calls | Events are async via the Redis queue. |
 | New error type | subclass [`Exception\ApiException`](src/Exception/ApiException.php) | Carry a status + machine `code`; the envelope renders it. |
@@ -63,6 +64,38 @@ placeholders (`/users/{id}`) matched one segment at a time.
 The generic [`CrudController`](src/Http/Controllers/CrudController.php) already
 handles list/read/create/update/delete for any configured resource — prefer
 config over a new controller unless you need custom behavior.
+
+## Plugins (`plugins/`, `src/Plugin/`)
+
+The supported way to add application features. A plugin is a folder under
+[plugins/](plugins/) that contributes services + routes to the running core
+**without editing any core file** — this is how the core stays frozen and
+auto-updatable while developers keep building. Full guide:
+[plugins/README.md](plugins/README.md).
+
+- **Contract:** `plugins/<Name>/` defines `Plugins\<Name>\<Name>Plugin` (at
+  `src/<Name>Plugin.php`) implementing [`Plugin`](src/Plugin/Plugin.php) — extend
+  [`AbstractPlugin`](src/Plugin/AbstractPlugin.php). Two hooks: `register(PluginRegistrar)`
+  adds services; `routes(PluginRouter, Container)` adds endpoints. Entry class takes
+  no constructor args.
+- **Namespace:** `Plugins\<Name>\` → `plugins/<Name>/src` (registered by
+  [`PluginManager`](src/Plugin/PluginManager.php), NOT under `Pmsrapi\V2\`).
+- **URL isolation:** routes are auto-prefixed with the plugin slug (lowercased
+  dir name), so `Billing` → `/v2/billing/…`. Slug collisions with a core prefix
+  or a configured resource fail loudly at boot.
+- **Governance (keep these when touching the plugin core):**
+  [`PluginRegistrar`](src/Plugin/PluginRegistrar.php) refuses to re-bind an
+  existing service id (plugins ADD, never replace); plugins get the shared
+  `Connection`/`Repository` injected and must not open their own DB/Redis handle;
+  a broken plugin throws [`PluginException`](src/Exception/PluginException.php)
+  and stops the service by design (fail loud, not half-loaded).
+- **Two core hooks only:** [bootstrap.php](bootstrap.php) calls
+  `registerServices()`; [routes.php](routes.php) calls `registerRoutes()`. These
+  are the *entire* integration surface — do not scatter plugin logic elsewhere.
+- **Wizard:** `bash v2/plugin.sh` (`new`/`list`/`check`/`remove`) scaffolds and
+  validates plugins. The shipped [`Example`](plugins/Example) plugin is the
+  reference; it is deletable.
+- `plugins/` is user-owned and survives core updates; do not put core code there.
 
 ## Data layer specifics
 

@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Pmsrapi\V2\Queue;
 
 use Pmsrapi\V2\Core\Config;
+use Pmsrapi\V2\Exception\WebhookStoreException;
 use Pmsrapi\V2\Support\Logger;
+use Pmsrapi\V2\Webhook\Webhook;
+use Pmsrapi\V2\Webhook\WebhookStore;
 
 /**
  * Fire-and-forget webhook emitter.
@@ -15,7 +18,9 @@ use Pmsrapi\V2\Support\Logger;
  * CLI worker (worker.php) drains the queue and deliver()s each matching
  * subscriber with an HMAC signature header.
  *
- * Subscribers are declared in the secret config under "webhooks":
+ * Subscribers come from the runtime-managed WebhookStore (the external JSON
+ * registry). If that file has not been initialized yet, we fall back to the
+ * legacy read-only "webhooks" array in the secret config:
  *   "webhooks": [ { "event": "users.created", "url": "https://...", "secret": "..." } ]
  */
 final class WebhookDispatcher
@@ -26,6 +31,7 @@ final class WebhookDispatcher
         private readonly RedisQueue $queue,
         private readonly Config $config,
         private readonly Logger $logger,
+        private readonly WebhookStore $store,
     ) {}
 
     /**
@@ -33,7 +39,7 @@ final class WebhookDispatcher
      */
     public function emit(string $event, array $payload): void
     {
-        if (!$this->hasSubscribers($event)) {
+        if ($this->subscribers($event) === []) {
             return;
         }
 
@@ -67,8 +73,8 @@ final class WebhookDispatcher
             ]);
 
             $headers = ['Content-Type: application/json'];
-            if (isset($sub['secret']) && $sub['secret'] !== '') {
-                $signature = hash_hmac('sha256', $body, (string) $sub['secret']);
+            if ($sub['secret'] !== null && $sub['secret'] !== '') {
+                $signature = hash_hmac('sha256', $body, $sub['secret']);
                 $headers[] = 'X-Signature: sha256=' . $signature;
             }
 
@@ -95,32 +101,62 @@ final class WebhookDispatcher
                 ]);
             }
 
-            $results[] = ['url' => (string) $sub['url'], 'status' => $status, 'ok' => $ok];
+            $results[] = ['url' => $sub['url'], 'status' => $status, 'ok' => $ok];
         }
 
         return $results;
     }
 
-    private function hasSubscribers(string $event): bool
+    /**
+     * Normalized subscribers for an event, from the managed store when present,
+     * otherwise the legacy secret-config array. A corrupt store degrades to
+     * "no subscribers" rather than failing the caller.
+     *
+     * @return list<array{url: string, secret: ?string}>
+     */
+    private function subscribers(string $event): array
     {
-        return $this->subscribers($event) !== [];
+        if ($this->store->isInitialized()) {
+            try {
+                return array_map(
+                    static fn(Webhook $w): array => ['url' => $w->target, 'secret' => $w->secret],
+                    $this->store->forEvent($event),
+                );
+            } catch (WebhookStoreException $e) {
+                $this->logger->error('Webhook store unreadable; skipping delivery', [
+                    'event' => $event,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return [];
+            }
+        }
+
+        return $this->legacySubscribers($event);
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * Legacy read-only subscribers from the secret config (exact event match).
+     *
+     * @return list<array{url: string, secret: ?string}>
      */
-    private function subscribers(string $event): array
+    private function legacySubscribers(string $event): array
     {
         $all = $this->config->secret('webhooks', []);
         if (!is_array($all)) {
             return [];
         }
 
-        return array_values(array_filter(
-            $all,
-            static fn(mixed $sub): bool => is_array($sub)
-                && ($sub['event'] ?? null) === $event
-                && !empty($sub['url']),
-        ));
+        $subscribers = [];
+        foreach ($all as $sub) {
+            if (is_array($sub) && ($sub['event'] ?? null) === $event && !empty($sub['url'])) {
+                $subscribers[] = [
+                    'url' => (string) $sub['url'],
+                    'secret' => isset($sub['secret']) && $sub['secret'] !== '' ? (string) $sub['secret'] : null,
+                ];
+            }
+        }
+
+        return $subscribers;
     }
 }

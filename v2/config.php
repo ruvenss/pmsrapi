@@ -29,6 +29,13 @@ return [
     // Absolute paths are recommended in production.
     'secrets_path' => dirname(__DIR__, 2) . '/weather.json',
 
+    // --- Runtime-managed webhook registry (built/rebuilt via REST) ---
+    // A SEPARATE file from the secret config: it is writable at runtime, so it
+    // must live OUTSIDE the code tree at an absolute path
+    // (see .claude/rules/sec-writable-state-outside-code). Leave null to derive
+    // it beside secrets_path as "<service>.webhooks.json".
+    'webhooks_path' => null,
+
     // --- CORS / default response headers ---
     'headers' => [
         'Access-Control-Allow-Origin' => '*',

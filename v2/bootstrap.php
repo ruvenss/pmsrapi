@@ -34,12 +34,15 @@ use Pmsrapi\V2\Http\Controllers\DebugController;
 use Pmsrapi\V2\Http\Controllers\HiveController;
 use Pmsrapi\V2\Http\Controllers\StreamController;
 use Pmsrapi\V2\Http\Controllers\SystemController;
+use Pmsrapi\V2\Http\Controllers\WebhookController;
 use Pmsrapi\V2\Http\Middleware\AuthMiddleware;
 use Pmsrapi\V2\Http\Middleware\RateLimitMiddleware;
+use Pmsrapi\V2\Plugin\PluginManager;
 use Pmsrapi\V2\Queue\RedisQueue;
 use Pmsrapi\V2\Queue\WebhookDispatcher;
 use Pmsrapi\V2\Security\TokenStore;
 use Pmsrapi\V2\Support\Logger;
+use Pmsrapi\V2\Webhook\WebhookStore;
 
 define('V2_BASE', __DIR__);
 
@@ -106,10 +109,21 @@ $container->singleton(Repository::class, static fn(Container $c): Repository => 
 
 $container->singleton(RedisQueue::class, static fn(Container $c): RedisQueue => new RedisQueue($c->get(RedisClient::class)));
 
+$container->singleton(WebhookStore::class, static fn(Container $c): WebhookStore => new WebhookStore(
+    $c->get(Config::class)->webhooksPath(),
+    V2_BASE,
+    $c->get(Logger::class),
+));
+
 $container->singleton(WebhookDispatcher::class, static fn(Container $c): WebhookDispatcher => new WebhookDispatcher(
     $c->get(RedisQueue::class),
     $c->get(Config::class),
     $c->get(Logger::class),
+    $c->get(WebhookStore::class),
+));
+
+$container->singleton(WebhookController::class, static fn(Container $c): WebhookController => new WebhookController(
+    $c->get(WebhookStore::class),
 ));
 
 $container->singleton(CrudController::class, static fn(Container $c): CrudController => new CrudController(
@@ -167,5 +181,12 @@ $container->singleton(StreamController::class, static fn(Container $c): StreamCo
 $container->singleton(HiveController::class, static fn(Container $c): HiveController => new HiveController(
     $c->get(HiveRegistry::class),
 ));
+
+// --- Plugins: discover developer extensions under v2/plugins/ and register
+// their services. This is the ONLY hook needed here — the core stays frozen
+// from now on; a plugin never edits bootstrap.php. See v2/plugins/README.md.
+$plugins = new PluginManager(V2_BASE . '/plugins', $autoloader, $container->get(Logger::class));
+$plugins->registerServices($container);
+$container->instance(PluginManager::class, $plugins);
 
 return $container;

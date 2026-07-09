@@ -1,0 +1,9 @@
+{
+    "name": "Example",
+    "slug": "example",
+    "description": "A tiny reference plugin. Shows a service + a route. Safe to delete.",
+    "version": "1.0.0",
+    "author": "PMSRAPI",
+    "enabled": true,
+    "dependencies": []
+}

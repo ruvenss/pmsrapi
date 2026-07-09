@@ -22,10 +22,12 @@ use Pmsrapi\V2\Http\Controllers\DebugController;
 use Pmsrapi\V2\Http\Controllers\HiveController;
 use Pmsrapi\V2\Http\Controllers\StreamController;
 use Pmsrapi\V2\Http\Controllers\SystemController;
+use Pmsrapi\V2\Http\Controllers\WebhookController;
 use Pmsrapi\V2\Http\HttpMethod;
 use Pmsrapi\V2\Http\Request;
 use Pmsrapi\V2\Http\ResourceDefinition;
 use Pmsrapi\V2\Http\Response;
+use Pmsrapi\V2\Plugin\PluginManager;
 
 /** @var Container $container */
 $router = new Router();
@@ -71,6 +73,27 @@ foreach ($config->resources() as $name => $resourceConfig) {
     }
 }
 
+// --- Webhook registry management (runtime-managed external JSON store) ---
+$router->get('/webhooks', static fn(Request $r, array $p): Response
+    => $container->get(WebhookController::class)->index($r));
+$router->post('/webhooks', static fn(Request $r, array $p): Response
+    => $container->get(WebhookController::class)->store($r));
+// Static subpath BEFORE the {id} routes so it is not swallowed by {id}.
+$router->post('/webhooks/rebuild', static fn(Request $r, array $p): Response
+    => $container->get(WebhookController::class)->rebuild($r));
+$router->get('/webhooks/{id}', static fn(Request $r, array $p): Response
+    => $container->get(WebhookController::class)->show($r, $p['id']));
+$router->put('/webhooks/{id}', static fn(Request $r, array $p): Response
+    => $container->get(WebhookController::class)->update($r, $p['id']));
+$router->patch('/webhooks/{id}', static fn(Request $r, array $p): Response
+    => $container->get(WebhookController::class)->update($r, $p['id']));
+$router->delete('/webhooks/{id}', static fn(Request $r, array $p): Response
+    => $container->get(WebhookController::class)->destroy($r, $p['id']));
+$router->post('/webhooks/{id}/enable', static fn(Request $r, array $p): Response
+    => $container->get(WebhookController::class)->enable($r, $p['id']));
+$router->post('/webhooks/{id}/disable', static fn(Request $r, array $p): Response
+    => $container->get(WebhookController::class)->disable($r, $p['id']));
+
 // --- Live debug dashboard (only when debug.enabled) ---
 if ((bool) $config->secret('debug.enabled', false)) {
     $router->get('/_debug', static fn(Request $r, array $p): Response
@@ -111,7 +134,9 @@ if ($config->isHiveMind()) {
         => $container->get(HiveController::class)->export($r, $p['service']));
 }
 
-// --- Add your own custom routes here (they survive core updates) ---
-// $router->get('/forecast/{city}', static fn(Request $r, array $p): Response => ...);
+// --- Plugins: mount every enabled plugin's routes under its own slug prefix
+// (GET /v2/<plugin>/…). Developers add endpoints INSIDE a plugin, never here;
+// this one line is the whole integration. See v2/plugins/README.md.
+$container->get(PluginManager::class)->registerRoutes($router, $container);
 
 return $router;
