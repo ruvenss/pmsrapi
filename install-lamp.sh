@@ -258,13 +258,20 @@ BASE="http://${IP}$([ "$PMS_PORT" = "80" ] && echo "" || echo ":${PMS_PORT}")/v2
 printf "\n${G}✅ PMSRAPI v2 is live${Z}\n"
 printf "%s\n" "──────────────────────────────────────────────"
 info "Base URL : ${BASE}"
-info "Token    : ${TOKEN}"
 info "Secret   : ${SECRET_FILE}"
-printf "\n${C}Try it:${Z}\n"
-printf "  curl -s %s/health\n" "$BASE"
-printf "  curl -s -H 'Authorization: Bearer %s' %s/example/hello/World\n" "$TOKEN" "$BASE"
-printf "  curl -s -H 'Authorization: Bearer %s' %s/info\n" "$TOKEN" "$BASE"
+
 printf "\n${C}Next:${Z}\n"
 info "• Expose a table over REST: add it to \"resources\" in ${SECRET_FILE}"
 info "• Build a feature as a plugin:  cd ${PMS_DIR} && bash v2/plugin.sh"
 info "• Full guide: ${PMS_DIR}/v2/docs/index.html"
+
+# Keep this block LAST: the token + a copy-paste request are the final thing the
+# user sees, so they can authenticate and test the API immediately.
+printf "\n${Y}══════════════════════════════════════════════════════════════════${Z}\n"
+printf " ${Y}🔑 THIS IS YOUR API TOKEN${Z} — save it; it authenticates every request:\n\n"
+printf "     ${G}%s${Z}\n\n" "$TOKEN"
+printf " Use it in curl — copy-paste to test right now:\n\n"
+printf "   curl -s -H 'Authorization: Bearer %s' %s/example/hello/World\n\n" "$TOKEN" "$BASE"
+printf " Or check health (no token needed):\n"
+printf "   curl -s %s/health\n" "$BASE"
+printf "${Y}══════════════════════════════════════════════════════════════════${Z}\n"
