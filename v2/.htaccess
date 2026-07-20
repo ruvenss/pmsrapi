@@ -2,9 +2,18 @@
 # Forward every /v2/... request that is not a real file to the front controller.
 # nginx equivalent is documented in v2/README.md.
 
+<IfVersion >= 2.4.13>
+    CGIPassAuth On
+</IfVersion>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /v2/
+
+    <IfVersion < 2.4.13>
+        RewriteCond %{HTTP:Authorization} ^(.*)
+        RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+    </IfVersion>
 
     # Serve existing files/dirs directly (static assets).
     RewriteCond %{REQUEST_FILENAME} -f [OR]
