@@ -174,7 +174,7 @@ final class ServiceClient
             (string) ($spec['path'] ?? '/'),
         );
 
-        $version = (int) ($spec['version'] ?? 2);
+        $version = (int) ($node['version'] ?? 2);
         $scheme = ($node['ssl'] ?? true) ? 'https' : 'http';
         $url = $scheme . '://' . $node['ip'] . ':' . $node['port'] . '/v' . $version . '/' . ltrim($path, '/');
 
