@@ -40,7 +40,15 @@ if (str_starts_with($content_type, 'application/json')) {
             $token = $token[1];
             if (hash_equals(ms_server_token, $token)) {
                 // Authorized
-                define("request_body", file_get_contents('php://input'));
+                // Prefer the raw JSON request body; fall back to query
+                // parameters when it is absent (e.g. cross-service GET calls
+                // from v2, which pass data via the query string, not the body).
+                $ms_raw_input = file_get_contents('php://input');
+                if (($ms_raw_input === '' || !json_validate($ms_raw_input)) && request_method === 'GET') {
+                    define("request_body", json_encode($_GET));
+                } else {
+                    define("request_body", $ms_raw_input);
+                }
                 if (isset(ms_secrets['allowed_functions']) && isset(ms_secrets['allowed_functions'][request_method]) && ms_secrets['allowed_functions'][request_method] != null) {
                     if (json_validate(request_body)) {
                         define("request_data", json_decode(request_body, true));
